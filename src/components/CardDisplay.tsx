@@ -27,7 +27,7 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
   const suitColor = `text-${getCardColor(card)}`
   return (
     <motion.div
-      onDragEnd={onDragEnd ? () => onDragEnd(selected, card) : () => {}}
+      onDragEnd={onDragEnd ? () => onDragEnd(selected, card) : undefined}
       onDragStart={() => (isDragging.current = true)}
       onDragTransitionEnd={() => (isDragging.current = false)}
       drag

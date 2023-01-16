@@ -4,6 +4,7 @@ import { useAppSelector } from '../store/hooks'
 import { selectTheme, Theme } from '../store/slices/appSettingsSlice'
 import LanguageSelector from '../components/LanguageSelector'
 import ThemeToggleButton from '../components/ThemeToggleButton'
+import Link from 'next/link'
 
 export default function Home() {
   const currentTheme = useAppSelector(selectTheme)
@@ -55,12 +56,12 @@ export default function Home() {
                 Or
               </div>
               <p className="text-center text-xl text-gray-600 dark:text-slate-400">
-                <a
+                <Link
                   href="/game"
                   className="font-medium text-indigo-400 hover:text-indigo-300"
                 >
                   Create a New Game
-                </a>
+                </Link>
               </p>
             </div>
             <div className="flex relative justify-center">

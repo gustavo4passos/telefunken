@@ -61,7 +61,6 @@ const Game = () => {
 
   useEffect(() => {
     if (ws == null) ws = new WebSocket('ws://localhost:7071')
-
     ws.onmessage = (conn: WebSocket) => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
@@ -290,7 +289,7 @@ const Game = () => {
                   </AnimatePresence>
                 )}
               {[
-                sortedCards.map((c, i) => (
+                sortedCards.map(c => (
                   <motion.div
                     key={c}
                     initial={{ translateY: '-50%' }}

@@ -2,7 +2,6 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { RootState } from '..'
 import { MPlayerJoined } from '../../api/messageTypes'
 import {
-  Player,
   GameData,
   GameState,
   INVALID_PLAYER_ID,
@@ -12,7 +11,6 @@ import {
   PlayerID,
   Meld,
 } from '../../game/gameState'
-import { rankSortFn } from '../../game/sets'
 
 export type GameDataState = GameData
 
