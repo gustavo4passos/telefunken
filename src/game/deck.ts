@@ -119,4 +119,3 @@ export const cardToString = (c: Card): string => {
 
   return `${rank}${suit}`
 }
-export { Card }

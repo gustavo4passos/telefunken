@@ -1,4 +1,5 @@
-import { Card, CardRank, getCardRank, getCardSuit, isJoker } from './deck'
+import { CardRank, getCardRank, getCardSuit, isJoker } from './deck'
+import { Card } from './gameState'
 
 // -1 for no size constraint
 export interface CombinationConstraint {

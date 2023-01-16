@@ -36,7 +36,7 @@ import WaitingForPlayers from '../components/WaitingForPlayer'
 import { isValidCombination, rankSortFn } from '../game/sets'
 import { Cog8ToothIcon } from '@heroicons/react/20/solid'
 
-let ws: WebSocket | null = null
+let ws: WebSocket | undefined = undefined
 
 const Game = () => {
   const {
@@ -53,15 +53,15 @@ const Game = () => {
   const gameState = state
   const playerCards = useAppSelector(state => state.gameData.playerCards)
   const dispatch = useAppDispatch()
-  const inputRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const localPlayerOrder = useAppSelector(getLocalPlayerOrder)
   const playMelds = useRef<Array<Meld>>([])
   const [selectedMeld, setSelectedMeld] = useState<Array<Card>>([])
   const sortedCards = [...playerCards].sort(rankSortFn)
 
   useEffect(() => {
-    if (ws == null) ws = new WebSocket('ws://localhost:7071')
-    ws.onmessage = (conn: WebSocket) => {
+    if (ws == undefined) ws = new WebSocket('ws://localhost:7071')
+    ws.onmessage = conn => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
         const gameCreatedMessage = message as MGameCreated
@@ -86,11 +86,11 @@ const Game = () => {
     }
   }, [dispatch])
 
-  const createGame = () => ws.send(JSON.stringify(MessageBuilder.createGame()))
+  const createGame = () => ws?.send(JSON.stringify(MessageBuilder.createGame()))
   const joinGame = (gameId: number) =>
-    ws.send(JSON.stringify(MessageBuilder.joinGame(gameId)))
+    ws?.send(JSON.stringify(MessageBuilder.joinGame(gameId)))
   const startGame = () =>
-    ws.send(JSON.stringify(MessageBuilder.startGame(playerId, gameId)))
+    ws?.send(JSON.stringify(MessageBuilder.startGame(playerId, gameId)))
 
   const sendPlay = (discard: number) => {
     if (playerTurn != playerId) return
