@@ -60,7 +60,8 @@ const Game = () => {
   const sortedCards = [...playerCards].sort(rankSortFn)
 
   useEffect(() => {
-    if (ws == undefined) ws = new WebSocket('ws://localhost:7071')
+    if (ws == undefined)
+      ws = new WebSocket('wss://telefunken-backend.onrender.com')
     ws.onmessage = conn => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
