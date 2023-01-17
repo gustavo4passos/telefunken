@@ -63,7 +63,7 @@ const Game = () => {
     console.log(process.env.NODE_ENV)
     console.log(process.env)
     if (ws == undefined)
-      ws = new WebSocket(process.env.NEXT_PUBLIC_BACKBONE_ADDRESS)
+      ws = new WebSocket(process.env.NEXT_PUBLIC_BACKBONE_ADDRESS || '')
     ws.onmessage = conn => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
