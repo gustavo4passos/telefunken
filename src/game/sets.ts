@@ -2,8 +2,9 @@ import { CardRank, getCardRank, getCardSuit, isJoker } from './deck'
 import { Card } from './gameState'
 
 // -1 for no size constraint
+export const NO_SIZE_CONTRAINT = -1
 export interface CombinationConstraint {
-  size: number
+  sizeConstraint: number
   pure: boolean
 }
 
@@ -88,9 +89,19 @@ export interface CombinationEvaulation {
   wildCardPos: number
 }
 
-export const isValidCombination = (cards: Array<Card>, pure = false) => {
-  // Sets need to be between 3 and 6 cards long
-  if (cards.length < 3 || cards.length > 5) return false
+export const isValidCombination = (
+  cards: Array<Card>,
+  constraint: CombinationConstraint = {
+    sizeConstraint: NO_SIZE_CONTRAINT,
+    pure: false,
+  }
+) => {
+  const { sizeConstraint, pure } = constraint
+
+  if (sizeConstraint != NO_SIZE_CONTRAINT && cards.length != sizeConstraint)
+    return false
+  // Without constraint, sets need can be between 3 and 6 cards long
+  else if (cards.length < 3 || cards.length > 5) return false
 
   // Separate the jokers from the combination
   const jokers = cards.filter(c => isJoker(c))
@@ -115,7 +126,6 @@ export const isValidCombination = (cards: Array<Card>, pure = false) => {
 
   // If allowing jokers and wild cards, check if it combination is valid by considering them
   if (!pure) {
-    console.log('kkk')
     // Is combination valid by considering the joker?
     if (jokers.length > 0) {
       // Sets with jokers are also valid without, so they would've been identified previously

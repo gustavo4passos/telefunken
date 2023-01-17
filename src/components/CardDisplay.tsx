@@ -41,16 +41,26 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
         setSelected(s => !s)
       }}
       className={
-        'flex flex-col aboslute p-2 w-20 h-28 shadow-md rounded-md bg-white ' +
+        'flex flex-col aboslute w-20 h-28 shadow-md rounded-md bg-white p-1 sm:p-1 md:p-1 ' +
           className || ''
       }
     >
-      <div className={'flex-1 font-bold tracking-tight ' + suitColor}>
+      <div
+        className={
+          'flex-1 font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-3xl ' +
+          suitColor
+        }
+      >
         {rankString}
         {suitString}
       </div>
       <div className="flex-1 flex self-end rotate-180">
-        <div className={'font-bold tracking-tight ' + suitColor}>
+        <div
+          className={
+            'font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-3xl ' +
+            suitColor
+          }
+        >
           {rankString}
           {suitString}
         </div>

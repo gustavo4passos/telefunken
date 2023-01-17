@@ -60,8 +60,10 @@ const Game = () => {
   const sortedCards = [...playerCards].sort(rankSortFn)
 
   useEffect(() => {
+    console.log(process.env.NODE_ENV)
+    console.log(process.env)
     if (ws == undefined)
-      ws = new WebSocket('wss://telefunken-backend.onrender.com')
+      ws = new WebSocket(process.env.NEXT_PUBLIC_BACKBONE_ADDRESS)
     ws.onmessage = conn => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
@@ -161,7 +163,7 @@ const Game = () => {
                   <div className="flex flex-col mr-10">
                     {Object.keys(players).length > 3 &&
                       [...Array(otherPlayerCards[localPlayerOrder[3]])].map(
-                        i => <CardBack className="mb-2 h-8 w-11" key={i} />
+                        i => <CardBack className="mb-2" horizontal key={i} />
                       )}
                   </div>
                   <MeldsDisplay melds={melds[localPlayerOrder[3]]} vertical />
@@ -246,7 +248,7 @@ const Game = () => {
                     <div className="flex flex-col">
                       {Object.keys(players).length > 1 &&
                         [...Array(otherPlayerCards[localPlayerOrder[1]])].map(
-                          i => <CardBack className="mb-2 h-8 w-11" key={i} />
+                          i => <CardBack className="mb-2" horizontal key={i} />
                         )}
                     </div>
                   </div>
@@ -273,7 +275,7 @@ const Game = () => {
           )}
           <div className="flex flex-1 flex-col bg-gradient-to-b from-purple-500 to-pink-900 items-center relative">
             <MeldsDisplay melds={melds[playerId] || []} />
-            <div className="flex flex-2 items-center justify-center relative">
+            <div className="flex flex-2 items-center justify-center ">
               {selectedMeld.length > 0 &&
                 playerTurn == playerId &&
                 isValidCombination(selectedMeld) && (
@@ -283,7 +285,7 @@ const Game = () => {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={dispatchAddMeld}
-                      className="font-bold tracking-tight rounded-xl bg-green-500 hover:bg-green-400 text-blue-900 w-16 py-1 absolute top-0"
+                      className="font-bold tracking-tight rounded-xl bg-green-500 hover:bg-green-400 text-blue-900 w-16 py-1 absolute -top-2"
                     >
                       Meld
                     </motion.button>
@@ -293,12 +295,13 @@ const Game = () => {
                 sortedCards.map(c => (
                   <motion.div
                     key={c}
-                    initial={{ translateY: '-50%' }}
+                    initial={{ translateY: -50 }}
                     animate={{ translateY: 0 }}
                     transition={{ duration: 2 }}
+                    className="pb-2"
                   >
                     <CardDisplay
-                      className="mr-2 w-20 h-28"
+                      className="mr-2 w-7 h-9 sm:w-8 sm:h-11 md:w-12 md:h-20 lg:w-16 lg:h-18 xl:w-20 xl:h-28"
                       card={c}
                       onTap={onCardTap}
                       onDragEnd={(selected, card) => {
