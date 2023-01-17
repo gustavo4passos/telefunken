@@ -242,7 +242,7 @@ const Game = () => {
                 >
                   {'Player 2'}
                 </div>
-                <div className="flex flex-grow items-center justify-center px-3">
+                <div className="flex flex-grow items-center justify-center">
                   <MeldsDisplay melds={melds[localPlayerOrder[1]]} vertical />
                   <div className="flex flex-col items-center ml-10">
                     <div className="flex flex-col">
@@ -301,7 +301,7 @@ const Game = () => {
                     className="pb-2"
                   >
                     <CardDisplay
-                      className="mr-2 w-7 h-9 sm:w-8 sm:h-11 md:w-12 md:h-20 lg:w-16 lg:h-18 xl:w-20 xl:h-28"
+                      className="w-8 h-10 sm:w-10 sm:h-14 md:w-11 md:h-14 lg:w-16 lg:h-20 xl:w-20 xl:h-28"
                       card={c}
                       onTap={onCardTap}
                       onDragEnd={(selected, card) => {

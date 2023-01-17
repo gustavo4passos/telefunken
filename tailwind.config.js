@@ -11,6 +11,9 @@ module.exports = {
         2: '2 2 0%',
         3: '3 3 0%',
       },
+      p: {
+        0.5: '0.125em',
+      },
     },
   },
   plugins: [require('@tailwindcss/forms')],

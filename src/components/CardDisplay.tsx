@@ -32,8 +32,8 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
       onDragTransitionEnd={() => (isDragging.current = false)}
       drag
       animate={selected ? { scale: 1.5 } : undefined}
-      whileHover={!selected ? { scale: 1.5 } : undefined}
-      whileTap={{ scale: 1.4 }}
+      whileHover={!selected ? { scale: 1.5, zIndex: -1, z: -1 } : undefined}
+      whileTap={{ scale: 1.4, zIndex: -1, z: -1 }}
       dragSnapToOrigin
       onTap={() => {
         if (isDragging.current) return
@@ -41,7 +41,7 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
         setSelected(s => !s)
       }}
       className={
-        'flex flex-col aboslute w-20 h-28 shadow-md rounded-md bg-white p-1 sm:p-1 md:p-1 ' +
+        'flex flex-col -m-1 sm:-m-1 md:-m-1 w-20 h-28 shadow-md rounded-sm sm:rounded-md bg-white p-1 sm:p-1 md:p-1 ' +
           className || ''
       }
     >
