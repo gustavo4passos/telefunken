@@ -32,8 +32,8 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
       onDragTransitionEnd={() => (isDragging.current = false)}
       drag
       animate={selected ? { scale: 1.5 } : undefined}
-      whileHover={!selected ? { scale: 1.5, zIndex: -1, z: -1 } : undefined}
-      whileTap={{ scale: 1.4, zIndex: -1, z: -1 }}
+      whileHover={!selected ? { scale: 1.5 } : undefined}
+      whileTap={{ scale: 1.4 }}
       dragSnapToOrigin
       onTap={() => {
         if (isDragging.current) return

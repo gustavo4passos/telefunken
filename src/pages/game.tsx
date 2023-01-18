@@ -60,8 +60,6 @@ const Game = () => {
   const sortedCards = [...playerCards].sort(rankSortFn)
 
   useEffect(() => {
-    console.log(process.env.NODE_ENV)
-    console.log(process.env)
     if (ws == undefined)
       ws = new WebSocket(process.env.NEXT_PUBLIC_BACKBONE_ADDRESS || '')
     ws.onmessage = conn => {
@@ -123,7 +121,7 @@ const Game = () => {
         <title>Telefunken Game</title>
       </Head>
       <div className="flex flex-col min-h-screen w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
-        <div className="flex flex-1 flex-col ">
+        <div className="flex flex-1 flex-col">
           <div className="flex justify-center px-10 py-2 bg-gradient-to-t from-indigo-700 to-indigo-900">
             <div className="flex-1"></div>
             <div className="flex-1 font-bold tracking-tight text-md text-indigo-200 text-center">
@@ -143,7 +141,7 @@ const Game = () => {
                   <div className="flex flex-row">
                     {Object.keys(players).length > 2 &&
                       [...Array(otherPlayerCards[localPlayerOrder[2]])].map(
-                        i => <CardBack className="ml-2" key={i} />
+                        i => <CardBack className="" key={i} />
                       )}
                   </div>
                 </div>
@@ -163,7 +161,7 @@ const Game = () => {
                   <div className="flex flex-col mr-10">
                     {Object.keys(players).length > 3 &&
                       [...Array(otherPlayerCards[localPlayerOrder[3]])].map(
-                        i => <CardBack className="mb-2" horizontal key={i} />
+                        i => <CardBack c horizontal key={i} />
                       )}
                   </div>
                   <MeldsDisplay melds={melds[localPlayerOrder[3]]} vertical />
@@ -171,10 +169,7 @@ const Game = () => {
               </>
             )}
           </div>
-          <div
-            className="flex flex-3 flex-col items-center justify-center"
-            id="papapa"
-          >
+          <div className="flex flex-3 flex-col items-center justify-center">
             {gameState == GameState.Invalid && (
               <input
                 ref={inputRef}
@@ -248,7 +243,7 @@ const Game = () => {
                     <div className="flex flex-col">
                       {Object.keys(players).length > 1 &&
                         [...Array(otherPlayerCards[localPlayerOrder[1]])].map(
-                          i => <CardBack className="mb-2" horizontal key={i} />
+                          i => <CardBack horizontal key={i} />
                         )}
                     </div>
                   </div>
@@ -257,7 +252,7 @@ const Game = () => {
             )}
           </div>
         </div>
-        <div className="flex flex-1 relative">
+        <div className="flex relative lg:h-50 xl:h-56">
           {gameState == GameState.InProgress && playerTurn == playerId && (
             <motion.div
               className="bg-green-300 absolute inset-0 blur-lg -top-5"
@@ -301,7 +296,7 @@ const Game = () => {
                     className="pb-2"
                   >
                     <CardDisplay
-                      className="w-8 h-10 sm:w-10 sm:h-14 md:w-11 md:h-14 lg:w-16 lg:h-20 xl:w-20 xl:h-28"
+                      className="w-10 h-14 sm:w-12 sm:h-14 md:w-11 md:h-14 lg:w-16 lg:h-20 xl:w-20 xl:h-28"
                       card={c}
                       onTap={onCardTap}
                       onDragEnd={(selected, card) => {
