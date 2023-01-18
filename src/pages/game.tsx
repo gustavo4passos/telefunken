@@ -141,7 +141,7 @@ const Game = () => {
                   <div className="flex flex-row">
                     {Object.keys(players).length > 2 &&
                       [...Array(otherPlayerCards[localPlayerOrder[2]])].map(
-                        i => <CardBack className="" key={i} />
+                        i => <CardBack key={i} />
                       )}
                   </div>
                 </div>
@@ -161,7 +161,7 @@ const Game = () => {
                   <div className="flex flex-col mr-10">
                     {Object.keys(players).length > 3 &&
                       [...Array(otherPlayerCards[localPlayerOrder[3]])].map(
-                        i => <CardBack c horizontal key={i} />
+                        i => <CardBack horizontal key={i} />
                       )}
                   </div>
                   <MeldsDisplay melds={melds[localPlayerOrder[3]]} vertical />
