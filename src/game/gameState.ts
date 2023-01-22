@@ -1,3 +1,5 @@
+import { CombinationConstraint } from './combinations'
+
 export enum GameState {
   Invalid,
   WaitingForPlayers,
@@ -6,17 +8,29 @@ export enum GameState {
 }
 
 export type PlayerID = number
+export type MeldID = number
 export type GameID = number
 export type Card = number
 export type Meld = Array<Card>
 
 export const INVALID_GAME_ID: GameID = -1
 export const INVALID_PLAYER_ID: GameID = -1
-export const INVALID_ROUND = -1
+export const INVALID_DEAL = -1
+
+export interface MeldExtension {
+  meldIndex: number
+  cards: Array<Card>
+}
 
 export interface PlayerMove {
   melds: Array<Meld>
-  discards: Card
+  discards: Card | null
+  meldExtensions: Record<MeldID, Array<Card>>
+}
+
+export interface DealConstraint {
+  combinationConstraint: CombinationConstraint
+  size: number
 }
 
 export interface GameData {
@@ -24,15 +38,17 @@ export interface GameData {
   playerId: PlayerID
   state: GameState
   players: Record<PlayerID, Player>
-  round: number
+  deal: number
   playerTurn: PlayerID
   melds: Record<PlayerID, Array<Meld>>
   playerCards: Array<Card>
   otherPlayerCards: Record<PlayerID, number>
   discardPile: Array<Card>
-  playerOrder: Array<PlayerID> //TODO: This does not need to be sent everytime, just once. Maybe GameStarted or GameJoined
+  dealConstraintCompliance: Array<boolean>
+  //TODO: These does not need to be sent everytime, just once. Maybe GameStarted or GameJoined
+  dealConstraints: Array<DealConstraint>
+  playerOrder: Array<PlayerID>
 }
-
 export interface Player {
   id: PlayerID
   name: string

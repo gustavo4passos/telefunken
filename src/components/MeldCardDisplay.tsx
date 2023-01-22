@@ -23,26 +23,23 @@ const getCardColor = (c: Card): string => {
   else return 'blue-600'
 }
 
-const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
+const MeldCardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
   const rankString = rankToString(card)
   const suitString = suitToString(card)
   const [selected, setSelected] = useState(false)
   const isDragging = useRef<boolean>(false)
   const suitColor = `text-${getCardColor(card)}`
+
   return (
     <motion.div
       onDragEnd={
         onDragEnd
-          ? (e, info) => {
+          ? e => {
               onDragEnd(selected, card, e)
             }
           : undefined
       }
-      onDragStart={() => (isDragging.current = true)}
-      onDragTransitionEnd={() => (isDragging.current = false)}
-      drag
       animate={selected ? { scale: 1.2 } : undefined}
-      whileHover={!selected ? { scale: 1.2 } : undefined}
       whileTap={{ scale: 1.1 }}
       dragSnapToOrigin
       onTap={() => {
@@ -51,32 +48,33 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
         setSelected(s => !s)
       }}
       className={
-        'flex flex-col -m-1 sm:-m-1 md:-m-1 w-20 h-28 shadow-md rounded-sm sm:rounded-md bg-white p-1 sm:p-1 md:p-1 ' +
+        'flex flex-col border-black border-solid border-1 -m-1 sm:-m-1 md:-m-1 shadow-md rounded-sm sm:rounded-md\
+         bg-white p-0 md:p-1 w-6 h-8 md:w-10 md:h-14 lg:w-10 lg:h-16 border ' +
           className || ''
       }
     >
       <div
         className={
-          'flex-1 font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-3xl ' +
+          'flex-1 font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-xl ' +
           suitColor
         }
       >
-        {rankString}
-        {suitString}
+        <div>{rankString}</div>
+        <div>{suitString}</div>
       </div>
       <div className="flex-1 flex self-end rotate-180">
-        <div
+        {/* <div
           className={
-            'font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-3xl ' +
+            'font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-xl ' +
             suitColor
           }
         >
           {rankString}
           {suitString}
-        </div>
+        </div> */}
       </div>
     </motion.div>
   )
 }
 
-export default CardDisplay
+export default MeldCardDisplay

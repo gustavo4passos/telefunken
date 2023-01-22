@@ -17,6 +17,7 @@ export enum GameMessageType {
   GameStarted,
   PlayerJoined,
   TurnChanged,
+  DealChanged,
 }
 
 export interface GameMessage {
@@ -58,5 +59,9 @@ export interface MPlay extends GameMessage {
 }
 
 export interface MTurnChanged extends GameMessage {
+  gameData: GameData
+}
+
+export interface MDealChanged extends GameMessage {
   gameData: GameData
 }

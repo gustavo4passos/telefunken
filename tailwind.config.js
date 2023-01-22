@@ -14,6 +14,12 @@ module.exports = {
       p: {
         0.5: '0.125em',
       },
+      colors: {
+        primary: '#C060A1',
+        secondary: '#F0CAA3',
+        info: '#00005C',
+        accent: '#3B185F',
+      },
     },
   },
   plugins: [require('@tailwindcss/forms')],

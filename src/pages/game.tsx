@@ -8,33 +8,41 @@ import {
   MGameJoined,
   MGameStarted,
   MPlayerJoined,
+  MDealChanged,
   MTurnChanged,
 } from '../api/messageTypes'
-import CardDisplay from '../components/CardDisplay'
 import CardBack from '../components/CardBack'
-import MeldsDisplay from '../components/MeldsDisplay'
+import MeldsDisplay, {
+  WantsToExtendMeldProps,
+} from '../components/MeldsDisplay'
 import {
   Card,
   GameState,
   INVALID_GAME_ID,
   Meld,
+  MeldID,
   PlayerMove,
 } from '../game/gameState'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import {
-  addMeld,
   gameCreated,
   gameJoined,
   gameStarted,
   getLocalPlayerOrder,
   play,
   playerJoined,
+  dealChanged,
   turnChanged,
+  addPlayMeld,
+  addCardToMeld,
 } from '../store/slices/gameDataSlice'
 import { AnimatePresence, motion } from 'framer-motion'
 import WaitingForPlayers from '../components/WaitingForPlayer'
-import { isValidCombination, rankSortFn } from '../game/sets'
-import { Cog8ToothIcon } from '@heroicons/react/20/solid'
+import { isValidCombination, rankSortFn } from '../game/combinations'
+import { UserCircleIcon } from '@heroicons/react/20/solid'
+import PlayerCardDisplay from '../components/PlayerCardDisplay'
+import DiscardPile from '../components/DiscardPile'
+import { doRectsCollide, getBoundingRect } from '../game/helpers'
 
 let ws: WebSocket | undefined = undefined
 
@@ -49,19 +57,31 @@ const Game = () => {
     otherPlayerCards,
     playerOrder,
     melds,
+    deal,
+    dealConstraints,
+    playMelds,
+    meldsRects,
+    playMeldExtensions,
   } = useAppSelector(state => state.gameData)
   const gameState = state
-  const playerCards = useAppSelector(state => state.gameData.playerCards)
   const dispatch = useAppDispatch()
+  const playerCards = useAppSelector(state => state.gameData.playerCards)
   const inputRef = useRef<HTMLInputElement>(null)
   const localPlayerOrder = useAppSelector(getLocalPlayerOrder)
-  const playMelds = useRef<Array<Meld>>([])
-  const [selectedMeld, setSelectedMeld] = useState<Array<Card>>([])
+  const [selectedMeld, setSelectedMeld] = useState<Meld>([])
   const sortedCards = [...playerCards].sort(rankSortFn)
+  const discardDivRef = useRef<HTMLDivElement>(null)
+  const [wantsToDiscard, setWantsToDiscard] = useState(false)
+  const isPlayerTurn = (player: number) =>
+    gameState == GameState.InProgress && localPlayerOrder[player] == playerTurn
+  const [wantsToExtendMeld, setWantsToExtendMeld] = useState<
+    WantsToExtendMeldProps | undefined
+  >(undefined)
 
   useEffect(() => {
     if (ws == undefined)
       ws = new WebSocket(process.env.NEXT_PUBLIC_BACKBONE_ADDRESS || '')
+    ws.onopen = () => console.log('Connection opened')
     ws.onmessage = conn => {
       const message = JSON.parse(conn.data) as GameMessage
       if (message.type == GameMessageType.GameCreated) {
@@ -82,8 +102,20 @@ const Game = () => {
       }
       if (message.type == GameMessageType.TurnChanged) {
         const m = message as MTurnChanged
-        dispatch(turnChanged(m.gameData))
+        dispatch(turnChanged(m))
       }
+      if (message.type == GameMessageType.DealChanged) {
+        const m = message as MDealChanged
+        dispatch(dealChanged(m))
+      }
+    }
+
+    ws.onclose = () => {
+      console.log('Connection closed')
+    }
+
+    ws.onerror = () => {
+      console.log('Connection error')
     }
   }, [dispatch])
 
@@ -93,69 +125,108 @@ const Game = () => {
   const startGame = () =>
     ws?.send(JSON.stringify(MessageBuilder.startGame(playerId, gameId)))
 
-  const sendPlay = (discard: number) => {
+  const sendPlay = (discard: number | null) => {
     if (playerTurn != playerId) return
     const playerMove: PlayerMove = {
       discards: discard,
-      melds: playMelds.current,
+      melds: playMelds,
+      meldExtensions: playMeldExtensions,
     }
+
     dispatch(play(playerMove))
+    console.log('playerMove', playerMove)
     ws?.send(JSON.stringify(MessageBuilder.play(gameId, playerId, playerMove)))
-    playMelds.current = []
   }
 
-  const dispatchAddMeld = () => {
-    dispatch(addMeld(selectedMeld))
-    playMelds.current.push(selectedMeld)
+  const dispatchAddPlayMeld = () => {
+    console.log('selected meld', selectedMeld)
+    console.log('playerCards', playerCards)
+    dispatch(addPlayMeld(selectedMeld))
     setSelectedMeld([])
   }
 
   const onCardTap = (selected: boolean, card: Card) => {
+    console.log('selected: ', selected, 'card: ', card)
+    console.log('selected: ', selected)
     if (selected) setSelectedMeld(m => [...m, card])
     else setSelectedMeld(m => m.filter(m => m != card))
   }
+
+  const dispatchAddCardToMeld = (meldId: MeldID, card: Card) => {
+    dispatch(addCardToMeld({ meldId, card }))
+  }
+
+  useEffect(() => {
+    if (gameState == GameState.InProgress && playerTurn == playerId) {
+      if (playerCards.length == 0) sendPlay(null)
+    }
+  }, [playerCards])
 
   return (
     <>
       <Head>
         <title>Telefunken Game</title>
       </Head>
-      <div className="flex flex-col min-h-screen w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500">
+      <div className="flex flex-col min-h-screen w-full bg-gradient-to-b from-primary to-secondary">
         <div className="flex flex-1 flex-col">
-          <div className="flex justify-center px-10 py-2 bg-gradient-to-t from-indigo-700 to-indigo-900">
-            <div className="flex-1"></div>
-            <div className="flex-1 font-bold tracking-tight text-md text-indigo-200 text-center">
-              {gameId != INVALID_GAME_ID && `GAME ${gameId}`}
+          <div className="flex justify-center px-10 py-3">
+            <div
+              className="flex flex-1 font-bold tracking-tight text-md text-indigo-100 justify-center items-center\ 
+            divide-x divide-secondary"
+            >
+              <div className="px-5 text-info">
+                {gameId != INVALID_GAME_ID && `GAME ${gameId}`}
+              </div>
+              <div className="px-5 text-info">
+                {gameState == GameState.InProgress && `DEAL ${deal}`}
+              </div>
+              <div className="px-5 text-info">
+                {gameState == GameState.InProgress &&
+                  `${dealConstraints[deal].size} Set${
+                    dealConstraints[deal].size > 1 ? 's' : ''
+                  } of ${
+                    dealConstraints[deal].combinationConstraint.sizeConstraint
+                  }`}
+              </div>
             </div>
-            <button className="flex flex-1 items-center justify-end">
-              <Cog8ToothIcon className="w-6 text-indigo-200" />
-            </button>
           </div>
-          <div className="flex flex-1 flex-col justify-center items-center shadow-inner">
+          <div
+            className={`flex flex-1 flex-col justify-center items-center shadow-inner pt-5 ${
+              !isPlayerTurn(2) && 'filter brightness-50'
+            }`}
+          >
             {Object.keys(players).length > 2 && (
               <>
-                <div className="flex font-bold text-xl self-center">
-                  {'Player 3'}
+                <div className="flex items-center justify-center portrait:flex-col text-xl self-center text-info">
+                  <div>{'Player 3'}</div>
+                  <div>
+                    <UserCircleIcon className="w-6 sm:w-8 landscape:ml-2" />
+                  </div>
                 </div>
-                <div className="flex flex-1 justify-center items-center ">
-                  <div className="flex flex-row">
+                <div className="flex flex-1 justify-center items-center flex-col">
+                  <div className="flex flex-row mb-5">
                     {Object.keys(players).length > 2 &&
                       [...Array(otherPlayerCards[localPlayerOrder[2]])].map(
                         i => <CardBack key={i} />
                       )}
                   </div>
+                  <MeldsDisplay melds={melds[localPlayerOrder[2]]} />
                 </div>
-                <MeldsDisplay melds={melds[localPlayerOrder[2]]} />
               </>
             )}
           </div>
         </div>
         <div className="flex flex-2">
-          <div className="flex flex-1 justify-center items-center flex-col">
+          <div
+            className={`flex flex-1 justify-center items-center pr-5 flex-col ${
+              !isPlayerTurn(3) && 'filter brightness-50'
+            }`}
+          >
             {Object.keys(players).length > 3 && (
               <>
-                <div className="flex font-bold tracking-tight text-xl py-2">
-                  {'Player 4'}
+                <div className="flex justify-center items-center tracking-tight text-xl py-2 text-info portrait:flex-col">
+                  <div>{'Player 4'}</div>
+                  <UserCircleIcon className="landscape:ml-2 w-6 sm:w-8" />
                 </div>
                 <div className="flex flex-1 items-center justify-center">
                   <div className="flex flex-col mr-10">
@@ -169,11 +240,12 @@ const Game = () => {
               </>
             )}
           </div>
-          <div className="flex flex-3 flex-col items-center justify-center">
+          <div className="flex portrait:flex-1 flex-3 flex-col items-center justify-center">
             {gameState == GameState.Invalid && (
               <input
                 ref={inputRef}
-                className="shadow border appearance-none rounded w-36 py-2 px-3 mt-2 focus:outline-none focus:shadow-outline"
+                className="shadow border appearance-none rounded w-36 py-2 px-3 mt-2 focus:outline-none\
+                 focus:shadow-outline"
                 placeholder="Room ID"
               />
             )}
@@ -197,7 +269,8 @@ const Game = () => {
                     <button
                       key={i as number}
                       onClick={fn as () => void}
-                      className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded mt-2"
+                      className="bg-accent hover:bg-primary hover:rounded-xl hover:text-white text-secondary py-2 \
+                      px-4 rounded-md mt-2 transition-all"
                     >
                       {t as string}
                     </button>
@@ -212,34 +285,37 @@ const Game = () => {
                   </div>
                   <button
                     onClick={startGame}
-                    className="bg-blue-500 hover:bg-blue-700 text-white py-2 px-4 rounded mt-2 w-32"
+                    className="bg-accent hover:bg-primary text-secondary py-2 px-4 rounded mt-2 w-32"
                   >
                     Start Game
                   </button>
                 </div>
               )}
               {gameState == GameState.InProgress && discardPile.length > 0 && (
-                <CardDisplay
-                  card={discardPile[discardPile.length - 1]}
-                  className="w-36 h-48"
-                />
+                <div ref={discardDivRef}>
+                  <DiscardPile
+                    pile={discardPile}
+                    wantsToDiscard={wantsToDiscard}
+                  />
+                </div>
               )}
               <div className="flex flex-col items-baseline m-10"></div>
             </div>
           </div>
-          <div className="flex flex-1 items-center justify-center flex-col">
+          <div
+            className={`flex flex-1 items-center justify-center flex-col ${
+              !isPlayerTurn(1) && 'filter brightness-50'
+            }`}
+          >
             {playerOrder.length > 1 && (
               <>
-                <div
-                  className={`font-bold tracking-tight text-xl py-2 ${
-                    localPlayerOrder[1] == playerTurn && 'text-white'
-                  }`}
-                >
-                  {'Player 2'}
+                <div className="flex w-full  items-center justify-center portrait:flex-col text-xl py-2 select-none text-info">
+                  <div>{'Player 2'}</div>
+                  <UserCircleIcon className="w-6 sm:w-8 landscape:ml-2" />
                 </div>
                 <div className="flex flex-grow items-center justify-center">
                   <MeldsDisplay melds={melds[localPlayerOrder[1]]} vertical />
-                  <div className="flex flex-col items-center ml-10">
+                  <div className="flex flex-col items-center ml-3 sm:ml-10">
                     <div className="flex flex-col">
                       {Object.keys(players).length > 1 &&
                         [...Array(otherPlayerCards[localPlayerOrder[1]])].map(
@@ -252,62 +328,107 @@ const Game = () => {
             )}
           </div>
         </div>
-        <div className="flex relative lg:h-50 xl:h-56">
-          {gameState == GameState.InProgress && playerTurn == playerId && (
-            <motion.div
-              className="bg-green-300 absolute inset-0 blur-lg -top-5"
-              animate={{
-                translateY: [0, -15, 0],
-                opacity: [0.8, 1, 0.8],
-              }}
-              transition={{
-                duration: 2,
-                ease: 'easeInOut',
-                repeat: Infinity,
-                repeatDelay: 0,
-              }}
-            />
-          )}
-          <div className="flex flex-1 flex-col bg-gradient-to-b from-purple-500 to-pink-900 items-center relative">
-            <MeldsDisplay melds={melds[playerId] || []} />
-            <div className="flex flex-2 items-center justify-center ">
-              {selectedMeld.length > 0 &&
-                playerTurn == playerId &&
-                isValidCombination(selectedMeld) && (
-                  <AnimatePresence>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={dispatchAddMeld}
-                      className="font-bold tracking-tight rounded-xl bg-green-500 hover:bg-green-400 text-blue-900 w-16 py-1 absolute -top-2"
-                    >
-                      Meld
-                    </motion.button>
-                  </AnimatePresence>
-                )}
-              {[
-                sortedCards.map(c => (
-                  <motion.div
-                    key={c}
-                    initial={{ translateY: -50 }}
-                    animate={{ translateY: 0 }}
-                    transition={{ duration: 2 }}
-                    className="pb-2"
-                  >
-                    <CardDisplay
-                      className="w-10 h-14 sm:w-12 sm:h-14 md:w-11 md:h-14 lg:w-16 lg:h-20 xl:w-20 xl:h-28"
-                      card={c}
-                      onTap={onCardTap}
-                      onDragEnd={(selected, card) => {
-                        if (!selected) sendPlay(card)
-                      }}
-                    />
-                  </motion.div>
-                )),
-              ]}
-            </div>
-          </div>
+        <div
+          className={`flex flex-1 flex-col items-center justify-center py-5${
+            !isPlayerTurn(0) && 'filter brightness-50'
+          }`}
+        >
+          <AnimatePresence>
+            <>
+              <MeldsDisplay
+                wantsToExtend={wantsToExtendMeld}
+                melds={melds[playerId] || []}
+                playMelds={playMelds}
+              />
+              <div className="flex items-center justify-center relative z-30">
+                {selectedMeld.length > 0 &&
+                  playerTurn == playerId &&
+                  isValidCombination(selectedMeld) && (
+                    <AnimatePresence>
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={dispatchAddPlayMeld}
+                        className="font-bold tracking-tight rounded-xl bg-green-500 hover:bg-green-400 \
+                        text-blue-900 w-16 py-1 absolute -top-2 z-50"
+                      >
+                        Meld
+                      </motion.button>
+                    </AnimatePresence>
+                  )}
+                <div className="flex flex-1 flex-wrap items-center justify-center px-3">
+                  {[
+                    sortedCards.map(c => (
+                      <motion.div
+                        key={c}
+                        initial={{ y: -200 }}
+                        animate={{ x: 0, y: 0 }}
+                        transition={{ duration: 2 }}
+                        className={'py-5 mt-5'}
+                      >
+                        <PlayerCardDisplay
+                          card={c}
+                          onTap={onCardTap}
+                          onDrag={(s, r) => {
+                            for (const mrid of Object.keys(meldsRects)) {
+                              const meldId = Number(mrid)
+                              const rect = meldsRects[meldId]
+                              if (doRectsCollide(r, rect)) {
+                                console.log('collides with meld', meldId)
+                                if (
+                                  wantsToExtendMeld &&
+                                  wantsToExtendMeld.meldId == meldId
+                                )
+                                  return
+                                setWantsToExtendMeld({
+                                  meldId,
+                                  isPlayMeld: false,
+                                })
+                                return
+                              }
+                            }
+
+                            if (wantsToExtendMeld != undefined)
+                              setWantsToExtendMeld(undefined)
+
+                            if (!discardDivRef || !discardDivRef.current) return
+
+                            const discardDivRect = getBoundingRect(
+                              discardDivRef.current
+                            )
+
+                            if (doRectsCollide(discardDivRect, r))
+                              setWantsToDiscard(true)
+                            else setWantsToDiscard(false)
+                          }}
+                          onDragEnd={(selected, card, r) => {
+                            for (const mrid of Object.keys(meldsRects)) {
+                              const meldId = Number(mrid)
+                              const rect = meldsRects[meldId]
+                              if (doRectsCollide(r, rect)) {
+                                dispatchAddCardToMeld(meldId, card)
+                                return
+                              }
+                            }
+
+                            if (!discardDivRef.current) return
+                            setWantsToDiscard(false)
+                            const discardDivRect = getBoundingRect(
+                              discardDivRef.current
+                            )
+
+                            if (doRectsCollide(discardDivRect, r))
+                              sendPlay(card)
+                          }}
+                        />
+                      </motion.div>
+                    )),
+                  ]}
+                </div>
+              </div>
+            </>
+          </AnimatePresence>
         </div>
       </div>
     </>
