@@ -33,7 +33,7 @@ const CardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
     <motion.div
       onDragEnd={
         onDragEnd
-          ? (e, info) => {
+          ? e => {
               onDragEnd(selected, card, e)
             }
           : undefined

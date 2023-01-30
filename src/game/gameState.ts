@@ -17,6 +17,12 @@ export const INVALID_GAME_ID: GameID = -1
 export const INVALID_PLAYER_ID: GameID = -1
 export const INVALID_DEAL = -1
 
+export interface PlayerDealEndState {
+  remainingCards: Array<Card>
+  melds: Array<Meld>
+}
+export type DealEndState = Record<PlayerID, PlayerDealEndState>
+
 export interface MeldExtension {
   meldIndex: number
   cards: Array<Card>
@@ -45,9 +51,11 @@ export interface GameData {
   otherPlayerCards: Record<PlayerID, number>
   discardPile: Array<Card>
   dealConstraintCompliance: Array<boolean>
-  //TODO: These does not need to be sent everytime, just once. Maybe GameStarted or GameJoined
+  dealsEndState: Array<DealEndState>
   dealConstraints: Array<DealConstraint>
   playerOrder: Array<PlayerID>
+  boughtThisRound: boolean
+  isOwner: boolean
 }
 export interface Player {
   id: PlayerID

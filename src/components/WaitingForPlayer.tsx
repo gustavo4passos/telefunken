@@ -43,7 +43,7 @@ const WaitingForPlayers = () => {
           repeat: Infinity,
           repeatDelay: 1,
         }}
-        className="font-bold text-white text-xl mr-5 select-none"
+        className="font-bold text-white text-xl mr-5 select-none text-center flex-wrap"
       >
         Waiting for Players
       </motion.div>

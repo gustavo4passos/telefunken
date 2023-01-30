@@ -1,4 +1,21 @@
-export const doRectsCollide = (a: DOMRect, b: DOMRect): boolean => {
+import { MeldID } from './gameState'
+
+export interface HTMLDivElementForRect {
+  getBoundingClientRect: () => DOMRect
+}
+
+export interface BoundingRect {
+  x: number
+  y: number
+  left: number
+  right: number
+  bottom: number
+  top: number
+  width: number
+  height: number
+}
+
+export const doRectsCollide = (a: BoundingRect, b: BoundingRect): boolean => {
   if (a.left > b.right) return false
   if (a.right < b.left) return false
   if (a.bottom < b.top) return false
@@ -6,9 +23,22 @@ export const doRectsCollide = (a: DOMRect, b: DOMRect): boolean => {
   return true
 }
 
-export const getBoundingRect = (element: HTMLDivElement | null): DOMRect => {
-  if (element) return element.getBoundingClientRect()
-  else
+export const getBoundingRect = (
+  element: HTMLDivElementForRect | null
+): BoundingRect => {
+  if (element) {
+    const domRect = element.getBoundingClientRect()
+    return {
+      x: domRect.x,
+      y: domRect.y,
+      left: domRect.left,
+      right: domRect.right,
+      bottom: domRect.bottom,
+      top: domRect.top,
+      width: domRect.width,
+      height: domRect.height,
+    }
+  } else
     return {
       x: 0,
       y: 0,
@@ -18,8 +48,19 @@ export const getBoundingRect = (element: HTMLDivElement | null): DOMRect => {
       top: 0,
       width: 0,
       height: 0,
-      toJSON: () => {
-        throw new Error('This function should never be called')
-      },
     }
+}
+
+export const getMeldCollision = (
+  rect: BoundingRect,
+  meldRefs: Record<MeldID, HTMLDivElementForRect>
+): MeldID | null => {
+  for (const meldId in meldRefs) {
+    const meldRef = meldRefs[meldId]
+    const meldRect = getBoundingRect(meldRef)
+
+    if (doRectsCollide(rect, meldRect)) return Number(meldId) as MeldID
+  }
+
+  return null
 }

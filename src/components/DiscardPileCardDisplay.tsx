@@ -3,62 +3,80 @@ import { Card } from '../game/gameState'
 import { motion } from 'framer-motion'
 import { useRef } from 'react'
 import Image from 'next/image'
+import { useAppSelector } from '../store/hooks'
+import AnimationLayoutWrapper from './AnimationLayoutWrapper'
 
 interface DiscardPileCardDisplayProps {
   card: Card
   className?: string
-  onTap?: (selected: boolean, card: Card) => void
+  pileSize: number
+  onTap: (selected: boolean, card: Card) => void
   onDragEnd?: (card: Card, e: MouseEvent | TouchEvent | PointerEvent) => void
 }
 
-const DiscardPileCardDisplay = ({ card }: DiscardPileCardDisplayProps) => {
+const DiscardPileCardDisplay = ({
+  card,
+  onTap,
+  pileSize,
+}: DiscardPileCardDisplayProps) => {
   const suit = getCardSuit(card)
   const rankString = rankToString(card)
   const suitString = suitToString(card)
   const isDragging = useRef<boolean>(false)
 
+  const discardAnimationStatus = useAppSelector(
+    state => state.gameData.playerDiscardAnimation.animationStatus
+  )
+
   return (
-    <motion.div
-      onDragTransitionEnd={() => (isDragging.current = false)}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 1.025 }}
-      dragSnapToOrigin
-      className={
-        'flex select-none flex-col border-solid border border-black shadow-md rounded-sm lg:rounded-md bg-white \
-          -ml-6 lg:-ml-28 p-1 sm:p-1 md:p-1 w-8 h-12 lg:w-32 lg:h-48 relative'
-      }
-    >
-      {suit != CardSuit.Joker ? (
-        <>
-          <div
-            className={`flex-1 font-bold tracking-tight text-sm md:text-md lg:text-3xl xl:text-4xl  ${
-              suit == CardSuit.Clubs || suit == CardSuit.Spade
-                ? 'text-black'
-                : 'text-red-500'
-            }`}
-          >
-            {rankString}
-            {suitString}
-          </div>
-          <div className="flex-1 flex self-end rotate-180">
+    <AnimationLayoutWrapper type="destination" status={discardAnimationStatus}>
+      <motion.div
+        layout="position"
+        layoutId={card.toString()}
+        key={card.toString()}
+        onDragTransitionEnd={() => (isDragging.current = false)}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 1.025 }}
+        onTap={() => onTap(false, card)}
+        dragSnapToOrigin
+        transition={{ duration: 1 }}
+        className={`flex select-none flex-col border-solid border border-black shadow-md \
+        rounded-md lg:rounded-md bg-white p-1 sm:p-1 md:p-1 w-[50px] h-[75px] lg:w-[100px] \
+        lg:h-[150px] md:w-[70px] md:h-[105px] relative cursor-pointer ${
+          pileSize > 1 && '-ml-[48px] md:-ml-[67px] lg:-ml-[96px]'
+        }`}
+        onLayoutAnimationComplete={() => console.log('flkjdsjklfds')}
+      >
+        {suit != CardSuit.Joker ? (
+          <>
             <div
-              className={`font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-3xl xl:text-3xl  ${
+              className={`flex-1 font-bold tracking-tight text-md md:text-xl lg:text-3xl xl:text-4xl ${
                 suit == CardSuit.Clubs || suit == CardSuit.Spade
                   ? 'text-black'
                   : 'text-red-500'
               }`}
             >
-              {rankString}
-              {suitString}
+              <div className="select-none">{rankString}</div>
+              <div className="-mt-3 select-none">{suitString}</div>
             </div>
-          </div>
-        </>
-      ) : (
-        <div>
+            <div className="flex-1 flex self-end rotate-180">
+              <div
+                className={`font-bold tracking-tight text-md md:text-xl lg:text-3xl xl:text-3xl ${
+                  suit == CardSuit.Clubs || suit == CardSuit.Spade
+                    ? 'text-black'
+                    : 'text-red-500'
+                }`}
+              >
+                <div className="select-none">{rankString}</div>
+                <div className="-mt-3 select-none">{suitString}</div>
+              </div>
+            </div>
+          </>
+        ) : (
           <Image fill alt="Joker card" src="./joker.svg" draggable={false} />
-        </div>
-      )}
-    </motion.div>
+        )}
+      </motion.div>
+    </AnimationLayoutWrapper>
   )
 }
 

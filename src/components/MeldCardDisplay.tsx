@@ -2,10 +2,10 @@ import { CardSuit, getCardSuit, rankToString, suitToString } from '../game/deck'
 import { Card } from '../game/gameState'
 import { motion } from 'framer-motion'
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 
 interface CardProps {
   card: Card
-  className?: string
   onTap?: (selected: boolean, card: Card) => void
   onDragEnd?: (
     selected: boolean,
@@ -14,24 +14,17 @@ interface CardProps {
   ) => void
 }
 
-const getCardColor = (c: Card): string => {
-  const suit = getCardSuit(c)
-  if (suit == CardSuit.Clubs) return 'black'
-  if (suit == CardSuit.Diamond) return 'yellow-500'
-  if (suit == CardSuit.Hearts) return 'red-500'
-  if (suit == CardSuit.Spade) return 'gray-600'
-  else return 'blue-600'
-}
-
-const MeldCardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
+const MeldCardDisplay = ({ card, onTap, onDragEnd }: CardProps) => {
+  const suit = getCardSuit(card)
   const rankString = rankToString(card)
   const suitString = suitToString(card)
   const [selected, setSelected] = useState(false)
   const isDragging = useRef<boolean>(false)
-  const suitColor = `text-${getCardColor(card)}`
 
   return (
     <motion.div
+      layout="position"
+      layoutId={card.toString()}
       onDragEnd={
         onDragEnd
           ? e => {
@@ -47,32 +40,26 @@ const MeldCardDisplay = ({ card, className, onTap, onDragEnd }: CardProps) => {
         if (onTap != undefined) onTap(!selected, card)
         setSelected(s => !s)
       }}
-      className={
-        'flex flex-col border-black border-solid border-1 -m-1 sm:-m-1 md:-m-1 shadow-md rounded-sm sm:rounded-md\
-         bg-white p-0 md:p-1 w-6 h-8 md:w-10 md:h-14 lg:w-10 lg:h-16 border ' +
-          className || ''
-      }
+      className={`flex flex-col border-black border-solid border-1 -ml-[12px] sm:-ml-1 md:-ml-[10px] first:m-0 \
+      shadow-md rounded-[4px] sm:rounded-md bg-white pl-[2px] w-[30px] h-[45px] md:w-[50px] md:h-[75px] lg:w-[40px] \
+      lg:h-[60px] border relative ${
+        suit == CardSuit.Clubs || suit == CardSuit.Spade
+          ? 'text-black'
+          : 'text-red-500'
+      }`}
     >
-      <div
-        className={
-          'flex-1 font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-xl ' +
-          suitColor
-        }
-      >
-        <div>{rankString}</div>
-        <div>{suitString}</div>
-      </div>
-      <div className="flex-1 flex self-end rotate-180">
-        {/* <div
+      {suit != CardSuit.Joker ? (
+        <div
           className={
-            'font-bold tracking-tight text-xs sm:text-sm md:text-md lg:text-lg xl:text-xl ' +
-            suitColor
+            'flex-1 font-bold tracking-tight text-md md:text-xl xl:text-xl select-none m-0 p-0'
           }
         >
-          {rankString}
-          {suitString}
-        </div> */}
-      </div>
+          <div className="select-none">{rankString}</div>
+          <div className="-mt-3 md:-mt-3 select-none">{suitString}</div>
+        </div>
+      ) : (
+        <Image fill alt="Joker card" src="./joker.svg" draggable={false} />
+      )}
     </motion.div>
   )
 }

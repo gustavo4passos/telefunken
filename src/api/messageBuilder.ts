@@ -1,6 +1,7 @@
-import { GameID, PlayerMove } from '../game/gameState'
+import { Card, GameID, PlayerMove } from '../game/gameState'
 import {
   GameMessageType,
+  MBuyCard,
   MCreateGame,
   MJoinGame,
   MPlay,
@@ -8,17 +9,29 @@ import {
   PlayerID,
 } from './messageTypes'
 
-const createGame = (): MCreateGame => {
-  return { type: GameMessageType.CreateGame }
-}
+const createGame = (playerId?: PlayerID): MCreateGame => ({
+  type: GameMessageType.CreateGame,
+  playerId,
+})
 
-const joinGame = (gameId: GameID): MJoinGame => {
-  return { type: GameMessageType.JoinGame, gameId }
-}
+const joinGame = (gameId: GameID, playerId?: PlayerID): MJoinGame => ({
+  type: GameMessageType.JoinGame,
+  gameId,
+  playerId,
+})
 
-const startGame = (playerId: PlayerID, gameId: GameID): MStartGame => {
-  return { type: GameMessageType.StartGame, playerId, gameId }
-}
+const startGame = (playerId: PlayerID, gameId: GameID): MStartGame => ({
+  type: GameMessageType.StartGame,
+  playerId,
+  gameId,
+})
+
+const buyCard = (playerId: PlayerID, card: Card, gameId: GameID): MBuyCard => ({
+  type: GameMessageType.BuyCard,
+  gameId,
+  playerId,
+  card,
+})
 
 const play = (
   gameId: GameID,
@@ -31,5 +44,5 @@ const play = (
   playerMove,
 })
 
-const MessageBuilder = { createGame, joinGame, startGame, play }
+const MessageBuilder = { createGame, joinGame, startGame, play, buyCard }
 export default MessageBuilder

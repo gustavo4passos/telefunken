@@ -27,6 +27,7 @@ export default function Home() {
                 className="animate-bounce mx-auto h-12 w-auto"
                 src="/logo.svg"
                 alt="Telefunken Logo"
+                draggable={false}
               />
               <h2 className="dark:text-white mt-3 text-center text-6xl font-bold tracking-tight text-gray-900">
                 Telefunken

@@ -3,60 +3,45 @@ import MeldDisplay from './MeldDisplay'
 
 export interface WantsToExtendMeldProps {
   meldId: MeldID
-  isPlayMeld: boolean
 }
 
 interface MeldsDisplayProps {
   melds: Array<Meld>
-  playMelds?: Array<Meld>
   vertical?: boolean
-  className?: ''
   wantsToExtend?: WantsToExtendMeldProps
+  addMeldRef?: (meldId: MeldID, ref: HTMLDivElement) => void
+  removeMeldRef?: (meldId: MeldID) => void
 }
 
 const MeldsDisplay = ({
   vertical,
   melds,
-  playMelds,
-  className,
   wantsToExtend,
+  addMeldRef,
+  removeMeldRef,
 }: MeldsDisplayProps) => {
   return (
     <div
       className={`flex items-center justify-center ${
         vertical ? 'flex-col' : ''
-      } ${className ? className : ''}
       }`}
     >
       {melds.map((m, i) => (
-        <div key={i} className={`${vertical ? 'mb-4' : 'mr-4'}`}>
+        <div
+          key={i}
+          className={`${vertical ? 'mb-[8px] sm:mb-4' : 'mr-[8px] sm:mr-4'}`}
+        >
           <MeldDisplay
             wantsToExtend={
-              wantsToExtend != undefined &&
-              !wantsToExtend.isPlayMeld &&
-              wantsToExtend.meldId == i
+              wantsToExtend != undefined && wantsToExtend.meldId == i
             }
             cards={m}
             meldId={i}
-            isPlayMeld={false}
+            addMeldRef={addMeldRef}
+            removeMeldRef={removeMeldRef}
           />
         </div>
       ))}
-      {playMelds &&
-        playMelds.map((m, i) => (
-          <div key={`play-${i}`} className={`${vertical ? 'mb-4' : 'mr-4'}`}>
-            <MeldDisplay
-              wantsToExtend={
-                wantsToExtend != undefined &&
-                wantsToExtend.isPlayMeld &&
-                wantsToExtend.meldId == i
-              }
-              isPlayMeld
-              meldId={i}
-              cards={m}
-            />
-          </div>
-        ))}
     </div>
   )
 }

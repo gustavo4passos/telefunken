@@ -1,5 +1,5 @@
 import { CardRank, getCardRank, getCardSuit, isJoker } from './deck'
-import { Card } from './gameState'
+import { Card, DealConstraint, Meld } from './gameState'
 
 // -1 for no size constraint
 export const NO_SIZE_CONTRAINT = -1
@@ -156,4 +156,30 @@ export const isValidCombination = (
     }
   }
   return false
+}
+
+export enum CanMeldStatus {
+  Invalid,
+  Success,
+  InvalidNumberOfMelds,
+  InvalidCombination,
+}
+
+export const doMeldsSatisfyDealConstraint = (
+  melds: Array<Meld>,
+  dealConstraint: DealConstraint
+): CanMeldStatus => {
+  if (dealConstraint.size != melds.length)
+    return CanMeldStatus.InvalidNumberOfMelds
+
+  for (const meld of melds)
+    if (!isValidCombination(meld, dealConstraint.combinationConstraint))
+      return CanMeldStatus.InvalidCombination
+
+  return CanMeldStatus.Success
+}
+
+export const isValidExtension = (meld: Meld, extensionCards: Array<Card>) => {
+  // Meld id can't be outside melds array bounds
+  return isValidCombination([...meld, ...extensionCards])
 }
