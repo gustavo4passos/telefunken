@@ -12,6 +12,7 @@ import {
   MTurnChanged,
   MCardBought,
   MGameEnded,
+  MPlayFailed,
 } from '../api/messageTypes'
 import MeldsDisplay, {
   WantsToExtendMeldProps,
@@ -21,7 +22,6 @@ import {
   GameState,
   INVALID_GAME_ID,
   INVALID_PLAYER_ID,
-  Meld,
   MeldID,
   PlayerID,
   PlayerMove,
@@ -32,7 +32,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import WaitingForPlayers from '../components/WaitingForPlayer'
 import {
   CanMeldStatus,
-  isValidCombination,
+  isValidExtension,
   rankSortFn,
 } from '../game/combinations'
 import { UserCircleIcon } from '@heroicons/react/20/solid'
@@ -53,6 +53,9 @@ import {
 import { getCardValue } from '../game/deck'
 import { AnimationStatus } from '../store/slices/gameDataSlice'
 import RemotePlayerCardsDisplay from '../components/RemotePlayerCardsDisplay'
+import { canPlayerMeld } from '../game/melds'
+import PlayerChips from '../components/PlayerChips'
+import ActionButton from '../components/ActionButton'
 
 let ws: WebSocket | undefined = undefined
 
@@ -99,6 +102,7 @@ const removeMeldRef = (meldId: MeldID) => {
 }
 
 const Game = () => {
+  const gameData = useAppSelector(state => state.gameData)
   const {
     state,
     playerId,
@@ -110,18 +114,18 @@ const Game = () => {
     deal,
     dealConstraints,
     playMelds,
-    meldsRefs,
     playMeldExtensions,
     boughtThisRound,
     isOwner,
     playerDrawAnimation,
-  } = useAppSelector(state => state.gameData)
+    playerChips,
+    selectedCards,
+  } = gameData
   const gameState = state
   const dispatch = useAppDispatch()
   const playerCards = useAppSelector(state => state.gameData.playerCards)
   const inputRef = useRef<HTMLInputElement>(null)
   const localPlayerOrder = useAppSelector(GameDataSlice.getLocalPlayerOrder)
-  const [selectedMeld, setSelectedMeld] = useState<Meld>([])
   const sortedCards = [...playerCards].sort(rankSortFn)
   const discardDivRef = useRef<HTMLDivElement>(null)
   const [wantsToDiscard, setWantsToDiscard] = useState(false)
@@ -182,7 +186,6 @@ const Game = () => {
       }
       if (message.type == GameMessageType.GameStarted) {
         const m = message as MGameStarted
-        console.log('GOt a game started message', m)
         dispatch(GameDataSlice.gameStarted(m.gameData))
       }
       if (message.type == GameMessageType.TurnChanged) {
@@ -199,6 +202,10 @@ const Game = () => {
       if (message.type == GameMessageType.GameEnded) {
         const m = message as MGameEnded
         dispatch(GameDataSlice.gameEnded(m))
+      }
+      if (message.type == GameMessageType.PlayFailed) {
+        const m = message as MPlayFailed
+        dispatch(GameDataSlice.playFailed(m))
       }
     }
 
@@ -243,7 +250,6 @@ const Game = () => {
       }
 
       dispatch(GameDataSlice.play(playerMove))
-      console.log('playerMove', playerMove)
       ws?.send(
         JSON.stringify(MessageBuilder.play(gameId, playerId, playerMove))
       )
@@ -251,25 +257,21 @@ const Game = () => {
     [dispatch, gameId, playerTurn, playerId, playMeldExtensions, playMelds]
   )
 
-  const dispatchAddPlayMeld = () => {
-    console.log('selected meld', selectedMeld)
-    console.log('playerCards', playerCards)
-    dispatch(GameDataSlice.addPlayMeld(selectedMeld))
-    setSelectedMeld([])
-
-    // Adding meld leaves player with no cards, so sendpl ay
-    if (playerCards.length == selectedMeld.length) sendPlay(null)
+  const onSelectCard = (selected: boolean, card: Card) => {
+    if (selected) dispatch(GameDataSlice.selectCard(card))
+    else dispatch(GameDataSlice.unselectCard(card))
   }
 
-  const onCardTap = (selected: boolean, card: Card) => {
-    console.log('selected: ', selected, 'card: ', card)
-    console.log('selected: ', selected)
-    if (selected) setSelectedMeld(m => [...m, card])
-    else setSelectedMeld(m => m.filter(m => m != card))
-  }
+  useEffect(() => {
+    // Player melded and have no more cards
+    if (playerCards.length == 0 && playMelds.length > 0) {
+      sendPlay(null)
+    }
+  }, [playerCards, playMelds])
 
   const dispatchBuyCard = () => {
     if (boughtThisRound) return
+    if (playerChips[playerId] < 1) return
     ws?.send(
       JSON.stringify(
         MessageBuilder.buyCard(
@@ -313,7 +315,7 @@ const Game = () => {
                 {gameId != INVALID_GAME_ID && `GAME ${gameId}`}
               </div>
               <div className="px-5 text-info">
-                {gameState == GameState.InProgress && `DEAL ${deal}`}
+                {gameState == GameState.InProgress && `DEAL ${deal + 1}`}
               </div>
               <div className="px-5 text-info">
                 {gameState == GameState.InProgress &&
@@ -335,13 +337,6 @@ const Game = () => {
             {topSlotPlayer != null && (
               <>
                 <motion.div
-                  animate={
-                    isPlayerTurnAtSlot(PlayerPositionSlot.Top)
-                      ? {
-                          opacity: [1, 0.5, 1],
-                        }
-                      : { opacity: 1 }
-                  }
                   transition={{ repeat: Infinity }}
                   className="flex items-center justify-center portrait:flex-col md:text-md xl:text-xl self-center text-info mb-1"
                 >
@@ -359,6 +354,7 @@ const Game = () => {
                     nCards={otherPlayerCards[topSlotPlayer]}
                   />
                   <MeldsDisplay melds={melds[topSlotPlayer]} />
+                  <PlayerChips count={playerChips[topSlotPlayer]} />
                 </div>
               </>
             )}
@@ -393,9 +389,10 @@ const Game = () => {
                     playerId={leftSlotPlayer}
                     nCards={otherPlayerCards[leftSlotPlayer]}
                   />
-                  <div className="flex flex-col items-center ml-3 sm:ml-10">
+                  <div className="flex flex-col items-center">
                     <MeldsDisplay vertical melds={melds[leftSlotPlayer]} />
                   </div>
+                  <PlayerChips count={playerChips[leftSlotPlayer]} vertical />
                 </div>
               </>
             )}
@@ -498,8 +495,9 @@ const Game = () => {
                   <UserCircleIcon className="w-6 sm:w-6 landscape:ml-2" />
                 </motion.div>
                 <div className="flex flex-grow items-center justify-center">
+                  <PlayerChips count={playerChips[rightSlotPlayer]} vertical />
                   <MeldsDisplay melds={melds[localPlayerOrder[1]]} vertical />
-                  <div className="flex flex-col items-center ml-3 sm:ml-10">
+                  <div className="flex flex-col items-center">
                     <RemotePlayerCardsDisplay
                       playerId={rightSlotPlayer}
                       nCards={otherPlayerCards[rightSlotPlayer]}
@@ -517,6 +515,9 @@ const Game = () => {
           }`}
         >
           <>
+            {gameState == GameState.InProgress && (
+              <PlayerChips count={playerChips[playerId]} />
+            )}
             <MeldsDisplay
               wantsToExtend={wantsToExtendMeld}
               melds={playerMelds || []}
@@ -524,22 +525,7 @@ const Game = () => {
               removeMeldRef={removeMeldRef}
             />
             <div className="flex items-center justify-center relative z-30 flex-col">
-              {selectedMeld.length > 0 &&
-                playerTurn == playerId &&
-                isValidCombination(selectedMeld) && (
-                  <AnimatePresence>
-                    <motion.button
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={dispatchAddPlayMeld}
-                      className="font-bold tracking-tight rounded-xl bg-green-500 hover:bg-green-400 \
-                        text-blue-900 w-16 py-1 absolute -top-2 z-50"
-                    >
-                      Meld
-                    </motion.button>
-                  </AnimatePresence>
-                )}
+              <ActionButton />
               <div className="flex flex-wrap items-center justify-center mx-3">
                 {[
                   sortedCards.map(
@@ -553,25 +539,48 @@ const Game = () => {
                           className="sm:py-5 -ml-[20px] first:-ml-0 sm:-ml-1 md:-ml-5 lg:-ml-[40px] my-1"
                         >
                           <PlayerCardDisplay
+                            drawnThisTurn={
+                              c == playerCards[playerCards.length - 1]
+                            }
                             displayValue={displayCardsValue}
                             card={c}
-                            onTap={onCardTap}
+                            selected={
+                              selectedCards.findIndex(card => card == c) != -1
+                            }
+                            setSelected={(selected: boolean) => {
+                              onSelectCard(selected, c)
+                              console.log('selecting', selected, 'card: ', c)
+                            }}
+                            isPlayerTurn={playerId == playerTurn}
                             onDrag={(s, r) => {
-                              for (const mrid of Object.keys(meldsRefs)) {
+                              for (const mrid in meldsRefs) {
                                 const meldId = Number(mrid)
                                 const meldRef = meldsRefs[meldId]
                                 const rect = getBoundingRect(meldRef)
 
                                 if (doRectsCollide(r, rect)) {
+                                  console.log('Collided! ', wantsToExtendMeld)
                                   if (
                                     wantsToExtendMeld &&
                                     wantsToExtendMeld.meldId == meldId
                                   )
                                     return
-                                  setWantsToExtendMeld({
-                                    meldId,
-                                  })
-                                  return
+
+                                  if (
+                                    isValidExtension(melds[playerId][meldId], [
+                                      c,
+                                    ]).length > 0
+                                  ) {
+                                    setWantsToExtendMeld({
+                                      meldId,
+                                      isValid: true,
+                                    })
+                                  } else {
+                                    setWantsToExtendMeld({
+                                      meldId,
+                                      isValid: false,
+                                    })
+                                  }
                                 }
                               }
 
@@ -595,7 +604,14 @@ const Game = () => {
                                 meldsRefs
                               )
                               if (meldCollisionId != null) {
-                                dispatchAddCardToMeld(meldCollisionId, card)
+                                // TODO: onDrag already determines if extension is valid. It shouldn't be called again
+                                if (
+                                  isValidExtension(
+                                    melds[playerId][meldCollisionId],
+                                    [c]
+                                  ).length > 0
+                                )
+                                  dispatchAddCardToMeld(meldCollisionId, card)
                               }
 
                               if (!discardDivRef.current) return
@@ -606,7 +622,6 @@ const Game = () => {
 
                               if (doRectsCollide(discardDivRect, r)) {
                                 if (playMelds.length == 0 || canMeldThisTurn) {
-                                  setSelectedMeld([])
                                   sendPlay(card)
                                 }
                               }

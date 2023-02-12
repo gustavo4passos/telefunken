@@ -89,6 +89,21 @@ export interface CombinationEvaulation {
   wildCardPos: number
 }
 
+const placeWildCardInPureMeld = (validPureMeld: Meld, joker: Card) => {
+  // Just place it in the end, if last card is not a K
+  // Otherwise, put it in the beginning
+  const lastCard = validPureMeld[validPureMeld.length - 1]
+  const lastCardRank = getCardRank(lastCard)
+  if (lastCardRank == CardRank.King) return [joker, ...validPureMeld]
+  return [...validPureMeld, joker]
+}
+
+const placeWildCardInGap = (cards: Meld, wildCard: Card, gap: RunGap) => {
+  const leftPart = cards
+  const rightPart = leftPart.splice(gap.pos, leftPart.length - gap.pos)
+  return [...leftPart, wildCard, ...rightPart]
+}
+
 export const isValidCombination = (
   cards: Array<Card>,
   constraint: CombinationConstraint = {
@@ -97,17 +112,16 @@ export const isValidCombination = (
   }
 ) => {
   const { sizeConstraint, pure } = constraint
-
   if (sizeConstraint != NO_SIZE_CONTRAINT && cards.length != sizeConstraint)
-    return false
+    return []
   // Without constraint, sets need can be between 3 and 6 cards long
-  else if (cards.length < 3 || cards.length > 5) return false
+  else if (cards.length < 3 || cards.length > 5) return []
 
   // Separate the jokers from the combination
   const jokers = cards.filter(c => isJoker(c))
 
   // No more than one joker can be in a combination
-  if (jokers.length > 1) return false
+  if (jokers.length > 1) return []
 
   // Remove the jokers from the combination
   const combNoJokers = cards.filter(c => !isJoker(c))
@@ -117,12 +131,19 @@ export const isValidCombination = (
 
   if (pure) {
     // No jokers allowed in pure set
-    if (jokers.length > 0) return false
+    if (jokers.length > 0) return []
   }
+
   // Check if combination is valid as a pure combination
   // (if it is valid as pure, it will still be by including the joker)
-  if (isValidSet(combNoJokers)) return true
-  if (isValidRun(combNoJokers)) return true
+  if (isValidSet(combNoJokers)) {
+    if (jokers.length == 0) return combNoJokers
+    return placeWildCardInPureMeld(combNoJokers, jokers[0])
+  }
+  if (isValidRun(combNoJokers)) {
+    if (jokers.length == 0) return combNoJokers
+    return placeWildCardInPureMeld(combNoJokers, jokers[0])
+  }
 
   // If allowing jokers and wild cards, check if it combination is valid by considering them
   if (!pure) {
@@ -132,10 +153,10 @@ export const isValidCombination = (
       // Therefore only runs needs to be checked
       // Runs needs to be of the same suit
       const cardsSameSuit = areCardsSameSuit(combNoJokers)
-      if (!cardsSameSuit) return false
+      if (!cardsSameSuit) return []
 
       const gap = findGap(combNoJokers)
-      if (gap.valid) return true
+      if (gap.valid) return placeWildCardInGap(combNoJokers, jokers[0], gap)
     } else {
       // No jokers, but maybe twos are being used as wild cards
       const twoIndices = new Array<number>()
@@ -149,13 +170,18 @@ export const isValidCombination = (
       for (const twoi of twoIndices) {
         const cp = [...combNoJokers]
         cp.splice(twoi, 1)
-        if (isValidSet(cp)) return true
-        if (areCardsSameSuit(cp) && findGap(cp).valid) return true
+        if (isValidSet(cp))
+          return placeWildCardInPureMeld(cp, combNoJokers[twoi])
+        if (!areCardsSameSuit(cp)) return []
+        const gap = findGap(cp)
+        if (gap.valid) {
+          return placeWildCardInGap(cp, combNoJokers[twoi], gap)
+        }
       }
-      return false
+      return []
     }
   }
-  return false
+  return []
 }
 
 export enum CanMeldStatus {

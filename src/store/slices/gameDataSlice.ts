@@ -6,7 +6,9 @@ import {
   MTurnChanged,
   MCardBought,
   MGameEnded,
+  MPlayFailed,
 } from '../../api/messageTypes'
+import { isValidCombination, isValidExtension } from '../../game/combinations'
 import {
   GameData,
   GameState,
@@ -18,12 +20,13 @@ import {
   Meld,
   MeldID,
   Card,
+  getPlayerOrderIndex,
+  MeldModification,
 } from '../../game/gameState'
 import { HTMLDivElementForRect } from '../../game/helpers'
 
 export enum AnimationStatus {
-  HideDestinationRequested,
-  HideDestinationReady,
+  HideDestination,
   HideOrigin,
 }
 
@@ -33,16 +36,25 @@ export interface PlayerDiscardAnimation {
   card: Card
 }
 
+export interface SelectedMeldCard {
+  meldId: MeldID
+  card: Card
+}
+
 // TODO: Instead of extending GameData it would be more clear if the state
 // actually has a field gameData where all the client game data goes
+// TODO: Separate animations into another slice?
 export interface GameDataState extends GameData {
   playMelds: Array<Meld>
   playMeldExtensions: Record<MeldID, Array<Card>>
   meldsRefs: Record<MeldID, HTMLDivElementForRect>
   playerDrawAnimation: AnimationStatus
   dealStartAnimation: AnimationStatus
-  playerBoughAnimation: AnimationStatus
+  playerBoughtAnimation: AnimationStatus
   playerDiscardAnimation: PlayerDiscardAnimation
+  selectedMeldCard: SelectedMeldCard | undefined
+  selectedCards: Array<Card>
+  meldModifications: Array<MeldModification>
 }
 
 const initialState: GameDataState = {
@@ -65,14 +77,19 @@ const initialState: GameDataState = {
   boughtThisRound: false,
   dealsEndState: [],
   isOwner: false,
-  playerDrawAnimation: AnimationStatus.HideDestinationRequested,
-  dealStartAnimation: AnimationStatus.HideDestinationRequested,
-  playerBoughAnimation: AnimationStatus.HideDestinationRequested,
+  playerDrawAnimation: AnimationStatus.HideOrigin,
+  dealStartAnimation: AnimationStatus.HideOrigin,
+  playerBoughtAnimation: AnimationStatus.HideOrigin,
   playerDiscardAnimation: {
     playerId: INVALID_PLAYER_ID,
     animationStatus: AnimationStatus.HideOrigin,
     card: 0,
   },
+  currentDealTurn: 0,
+  playerChips: {},
+  meldModifications: [],
+  selectedMeldCard: undefined,
+  selectedCards: [],
 }
 
 export const gameDataSlice = createSlice({
@@ -107,7 +124,7 @@ export const gameDataSlice = createSlice({
       const discardAnimationStatus =
         state.playerId == state.playerTurn
           ? AnimationStatus.HideOrigin
-          : AnimationStatus.HideDestinationRequested
+          : AnimationStatus.HideDestination
       const playerDiscardAnimation = {
         playerId: state.playerTurn,
         animationStatus: discardAnimationStatus,
@@ -117,7 +134,7 @@ export const gameDataSlice = createSlice({
       const isPlayerTurn = payload.payload.gameData.playerTurn == state.playerId
       // If it's local player turn, request the draw animation
       const animationStatus = isPlayerTurn
-        ? AnimationStatus.HideDestinationRequested
+        ? AnimationStatus.HideDestination
         : state.playerDrawAnimation
       return {
         ...state,
@@ -137,32 +154,58 @@ export const gameDataSlice = createSlice({
         state.playerCards = state.playerCards.filter(
           p => p != payload.payload.discards
         )
+
+        state.discardPile = [...state.discardPile, payload.payload.discards]
       }
 
       state.playMelds = []
       state.playMeldExtensions = {}
+
+      // Optimistically advance to next player turn
+      const playerIndex = getPlayerOrderIndex(state.playerOrder, state.playerId)
+      const nextPlayerIdnex = (playerIndex + 1) % state.playerOrder.length
+      state.playerTurn = state.playerOrder[nextPlayerIdnex]
+
+      // Clear selected cards
+      state.selectedCards = []
     },
-    addPlayMeld: (state, payload: PayloadAction<Meld>) => {
-      state.playMelds.push(payload.payload)
+    addPlayMeld: state => {
+      state.playMelds.push(isValidCombination(state.selectedCards))
 
       state.playerCards = state.playerCards.filter(
-        c => payload.payload.indexOf(c) == -1
+        c => state.selectedCards.indexOf(c) == -1
       )
 
+      // Copy play meld to melds (optimistic updating)
       state.melds[state.playerId] = [
         ...state.melds[state.playerId],
-        payload.payload,
+        [...state.playMelds[state.playMelds.length - 1]],
       ]
+
+      state.selectedCards = []
     },
     addCardToMeld: (
       state,
       payload: PayloadAction<{ meldId: MeldID; card: Card }>
     ) => {
-      const playMeldStart = getPlayMeldStart(state)
+      state.melds[state.playerId][payload.payload.meldId] = isValidExtension(
+        state.melds[state.playerId][payload.payload.meldId],
+        [payload.payload.card]
+      )
+
+      state.playerCards = state.playerCards.filter(
+        c => c != payload.payload.card
+      )
+
       // If meld is actually a play meld, just add card to the meld
-      if (payload.payload.meldId >= playMeldStart) {
-        const playMeldId = payload.payload.meldId - playMeldStart
-        state.playMelds[playMeldId].push(payload.payload.card)
+      if (isPlayMeld(payload.payload.meldId, state)) {
+        const playMeldId = getPlayMeldId(payload.payload.meldId, state)
+        // TODO: Calling isValidExtension to organize the cards shouldn't be necessary. It should already have
+        // been checked before this action has been called
+        state.playMelds[playMeldId] = isValidExtension(
+          state.playMelds[playMeldId],
+          [payload.payload.card]
+        )
       }
       // Otherwise, add playMeldExtension
       else {
@@ -173,14 +216,6 @@ export const gameDataSlice = createSlice({
           payload.payload.card
         )
       }
-
-      state.melds[state.playerId][payload.payload.meldId].push(
-        payload.payload.card
-      )
-
-      state.playerCards = state.playerCards.filter(
-        c => c != payload.payload.card
-      )
     },
     undoMeld: (state, payload: PayloadAction<MeldID>) => {
       state.playerCards = [
@@ -214,11 +249,17 @@ export const gameDataSlice = createSlice({
     },
     buyCard: state => {
       state.playerCards.push(state.discardPile.splice(-1)[0])
+      state.playerChips[state.playerId]--
     },
     gameEnded: (state, payload: PayloadAction<MGameEnded>) => {
       return { ...state, ...payload.payload.gameData }
     },
+    playFailed: (state, payload: PayloadAction<MPlayFailed>) => {
+      return { ...state, ...payload.payload.gameData }
+    },
     onBuyCardResponse: (state, payload: PayloadAction<MCardBought>) => {
+      // Update players chips, just in case
+      state.playerChips = payload.payload.gameData.playerChips
       // TODO: Is it assured that, when card is bought successfully, discard pile is the same as it was
       // when the request was sent?
       // Local player bought the card
@@ -233,7 +274,7 @@ export const gameDataSlice = createSlice({
           // This will never be null when local player bought the card, but typescript does not know that
           if (payload.payload.cardDrawn != null) {
             state.playerCards.push(payload.payload.cardDrawn)
-            state.playerDrawAnimation = AnimationStatus.HideDestinationRequested
+            state.playerDrawAnimation = AnimationStatus.HideDestination
           }
         }
       }
@@ -254,6 +295,76 @@ export const gameDataSlice = createSlice({
       if (state.playerDiscardAnimation.playerId == payload.payload.playerId) {
         state.playerDiscardAnimation = payload.payload
       }
+    },
+    setSelectedMeldCard: (
+      state,
+      payload: PayloadAction<SelectedMeldCard | undefined>
+    ) => {
+      state.selectedMeldCard = payload.payload
+    },
+    selectCard: (state, payload: PayloadAction<Card>) => {
+      state.selectedCards.push(payload.payload)
+    },
+    unselectCard: (state, payload: PayloadAction<Card>) => {
+      state.selectedCards = state.selectedCards.filter(
+        c => c != payload.payload
+      )
+    },
+    modifyMeld: (state, payload: PayloadAction<MeldModification>) => {
+      const { meldId, meldPlayerId } = payload.payload
+
+      switch (payload.payload.data.kind) {
+        case 'replacement': {
+          // Is any of the cards that I'm trying to replace already used as replacement this turn?
+          // ...
+          // In that case, only allow the replacement if it's the same pair of cards = undo replacement
+          const { handToMeld, meldToHand } = payload.payload.data
+          // TODO: Remove me after testing
+          if (meldPlayerId != state.playerId)
+            throw new Error("Can't replace cards in other player melds")
+
+          state.melds[state.playerId][meldId].push(handToMeld)
+          state.melds[state.playerId][meldId] = state.melds[state.playerId][
+            meldId
+          ].filter(c => c != meldToHand)
+          // Place cards in their place
+          state.melds[state.playerId][meldId] = isValidCombination(
+            state.melds[state.playerId][meldId]
+          )
+
+          state.playerCards.push(meldToHand)
+          state.playerCards = state.playerCards.filter(c => c != handToMeld)
+
+          break
+        }
+        case 'extension': {
+          const { card } = payload.payload.data
+          const meld = state.melds[meldPlayerId][meldId]
+          state.melds[meldPlayerId][meldId] = isValidExtension(meld, [card])
+
+          state.playerCards = state.playerCards.filter(c => c != card)
+
+          break
+        }
+        default:
+          break
+      }
+
+      if (meldPlayerId != state.playerId || !isPlayMeld(meldId, state)) {
+        state.meldModifications.push(payload.payload)
+      } else {
+        const playMeldId = getPlayMeldId(meldId, state)
+        // TODO: Remove me after testing
+        if (playMeldId <= 0 || playMeldId >= state.playMelds.length) {
+          throw new Error('Invalid play meld ID')
+        }
+
+        state.playMelds[playMeldId] = [...state.melds[state.playerId][meldId]]
+      }
+
+      // Deselect meld card and hand card
+      state.selectedCards = []
+      state.selectedMeldCard = undefined
     },
   },
 })
@@ -280,6 +391,35 @@ export const getLocalPlayerOrder = (state: RootState): Array<PlayerID> => {
   return localPlayerOrder
 }
 
+export const isPlayMeld = (meldId: MeldID, state: GameDataState) => {
+  const playMeldStart = getPlayMeldStart(state)
+  return meldId >= playMeldStart
+}
+
+export const getPlayMeldId = (meldId: MeldID, state: GameDataState) => {
+  const playMeldStart = getPlayMeldStart(state)
+  return meldId - playMeldStart
+}
+
+// -1 if card hasn't come from replacement
+export const getIndexIfHandCardCameFromReplacement = (
+  card: Card,
+  state: GameDataState
+): number => {
+  return state.meldModifications.findIndex(
+    e => e.data.kind == 'replacement' && e.data.meldToHand == card
+  )
+}
+
+export const getIndexIfMeldCardCameFromReplacement = (
+  card: Card,
+  state: GameDataState
+): number => {
+  return state.meldModifications.findIndex(
+    e => e.data.kind == 'replacement' && e.data.handToMeld == card
+  )
+}
+
 export const {
   createGame,
   setPlayerId,
@@ -299,5 +439,10 @@ export const {
   onBuyCardResponse,
   setDealStartAnimation,
   setDiscardAnimation,
+  playFailed,
+  modifyMeld,
+  setSelectedMeldCard,
+  selectCard,
+  unselectCard,
 } = gameDataSlice.actions
 export default gameDataSlice.reducer

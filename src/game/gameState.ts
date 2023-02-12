@@ -20,8 +20,26 @@ export const INVALID_DEAL = -1
 export interface PlayerDealEndState {
   remainingCards: Array<Card>
   melds: Array<Meld>
+  cardsBought: Array<Card>
 }
 export type DealEndState = Record<PlayerID, PlayerDealEndState>
+
+export interface MeldCardReplacement {
+  kind: 'replacement'
+  handToMeld: Card
+  meldToHand: Card
+}
+
+export interface MeldCardExtension {
+  kind: 'extension'
+  card: Card
+}
+
+export interface MeldModification {
+  meldPlayerId: PlayerID
+  meldId: MeldID
+  data: MeldCardReplacement | MeldCardExtension
+}
 
 export interface MeldExtension {
   meldIndex: number
@@ -56,7 +74,10 @@ export interface GameData {
   playerOrder: Array<PlayerID>
   boughtThisRound: boolean
   isOwner: boolean
+  currentDealTurn: number
+  playerChips: Record<PlayerID, number>
 }
+
 export interface Player {
   id: PlayerID
   name: string
@@ -71,4 +92,22 @@ export const getOpponentLocalOrder = (
     throw Error('Player order is invalid. There are not enough players for it.')
 
   return playerOrder[(localPlayerOrder + order) % playerOrder.length]
+}
+
+export const getPlayerOrderIndex = (
+  playerOrder: Array<PlayerID>,
+  playerId: PlayerID
+) => {
+  const index = playerOrder.findIndex(p => p == playerId)
+  // TODO: Test me then remove me
+  if (index == -1)
+    throw Error(
+      "Can't find player order index. Player is not in player order list"
+    )
+
+  return index
+}
+
+export const isFirstDealTurn = (gameData: GameData) => {
+  return Math.floor(gameData.currentDealTurn / gameData.playerOrder.length) < 1
 }

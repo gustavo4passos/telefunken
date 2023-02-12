@@ -21,6 +21,7 @@ export enum GameMessageType {
   DealChanged,
   GameEnded,
   CardBought,
+  PlayFailed,
 }
 
 export enum MessageStatusType {
@@ -101,5 +102,9 @@ export interface MCardBought extends GameMessage {
   card: Card | null
   success: boolean | null
   cardDrawn: Card | null
+  gameData: GameData
+}
+
+export interface MPlayFailed extends GameMessage {
   gameData: GameData
 }

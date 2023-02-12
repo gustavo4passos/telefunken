@@ -1,8 +1,10 @@
 import { Meld, MeldID } from '../game/gameState'
+import { useAppDispatch } from '../store/hooks'
 import MeldDisplay from './MeldDisplay'
 
 export interface WantsToExtendMeldProps {
   meldId: MeldID
+  isValid: boolean
 }
 
 interface MeldsDisplayProps {
@@ -23,17 +25,23 @@ const MeldsDisplay = ({
   return (
     <div
       className={`flex items-center justify-center ${
-        vertical ? 'flex-col' : ''
+        vertical ? 'flex-col mx-3 sm:mx-3' : 'mt-2 mb-2 '
       }`}
     >
       {melds.map((m, i) => (
         <div
           key={i}
-          className={`${vertical ? 'mb-[8px] sm:mb-4' : 'mr-[8px] sm:mr-4'}`}
+          className={`${
+            vertical
+              ? 'mt-[8px] sm:mt-4 first:mt-0'
+              : 'ml-[15px] sm:ml-4 first:ml-0'
+          }`}
         >
           <MeldDisplay
             wantsToExtend={
-              wantsToExtend != undefined && wantsToExtend.meldId == i
+              wantsToExtend != undefined &&
+              wantsToExtend.isValid &&
+              wantsToExtend.meldId == i
             }
             cards={m}
             meldId={i}

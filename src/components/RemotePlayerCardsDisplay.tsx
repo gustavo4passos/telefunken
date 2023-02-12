@@ -24,6 +24,10 @@ const RemotePlayerCardsDisplay = ({
     state => state.gameData.playerDiscardAnimation
   )
 
+  const dealStartAnimationStatus = useAppSelector(
+    state => state.gameData.dealStartAnimation
+  )
+
   const dispatch = useAppDispatch()
 
   const getThisPlayersAnimationStatus = () => {
@@ -36,19 +40,7 @@ const RemotePlayerCardsDisplay = ({
     if (discardAnimationStatus.playerId == playerId) {
       if (
         discardAnimationStatus.animationStatus ==
-        AnimationStatus.HideDestinationRequested
-      ) {
-        // Randomly select a card to discard among player cards
-        dispatch(
-          setDiscardAnimation({
-            ...discardAnimationStatus,
-            animationStatus: AnimationStatus.HideDestinationReady,
-          })
-        )
-      }
-      if (
-        discardAnimationStatus.animationStatus ==
-        AnimationStatus.HideDestinationReady
+        AnimationStatus.HideDestination
       ) {
         dispatch(
           setDiscardAnimation({
@@ -62,30 +54,37 @@ const RemotePlayerCardsDisplay = ({
 
   return (
     <motion.div
-      className={`flex mb-5 ${horizontal ? 'flex-row' : 'flex-col'}`}
+      className={`flex ${horizontal ? 'flex-row' : 'flex-col'}`}
       layout
     >
       {[...Array(nCards)].map((k, i) => (
-        <div
-          key={i}
-          className={`flex relative border-solid border-black border shadow-md rounded-sm lg:rounded-md \
+        <AnimationLayoutWrapper
+          key={`player-${playerId}-${i}`}
+          type="destination"
+          status={dealStartAnimationStatus}
+        >
+          <motion.div
+            key={`player-${playerId}-${i}`}
+            layoutId={`player-${playerId}-${i}`}
+            className={`flex relative border-solid border-black border shadow-md rounded-sm lg:rounded-md \
            select-none bg-gray-400 ${
              !horizontal
                ? '-mt-2 md:-mt-2 lg:-mt-4 w-6 h-4 lg:w-12 lg:h-8 first:mt-0'
                : '-ml-2 md:-ml-2 lg:-ml-4 w-4 h-6 lg:w-8 lg:h-12 first:ml-0'
            } `}
-        >
-          <Image
-            fill
-            src={
-              !horizontal
-                ? 'card-back-horizontal.svg'
-                : 'card-back-vertical.svg'
-            }
-            alt="Card back"
-            draggable={false}
-          />
-        </div>
+          >
+            <Image
+              fill
+              src={
+                !horizontal
+                  ? 'card-back-horizontal.svg'
+                  : 'card-back-vertical.svg'
+              }
+              alt="Card back"
+              draggable={false}
+            />
+          </motion.div>
+        </AnimationLayoutWrapper>
       ))}
 
       <AnimationLayoutWrapper

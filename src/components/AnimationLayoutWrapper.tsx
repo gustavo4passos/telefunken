@@ -13,7 +13,7 @@ const AnimationLayoutWrapper = ({
 }: PropsWithChildren<AnimationLayoutWrapperProps>): JSX.Element => {
   const hide = () => {
     if (type == 'origin') return status == AnimationStatus.HideOrigin
-    if (type == 'destination') return status != AnimationStatus.HideOrigin
+    if (type == 'destination') return status == AnimationStatus.HideDestination
   }
 
   return <>{!hide() && children}</>

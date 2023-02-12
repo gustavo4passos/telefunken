@@ -44,7 +44,6 @@ const DiscardPile = ({
       )}
       {pile.length > 1 && (
         <DiscardPileCardDisplay
-          onTap={onBuyCard}
           card={pile[pile.length - 2]}
           pileSize={pile.length - 1}
         />
@@ -52,7 +51,7 @@ const DiscardPile = ({
 
       {pile.length > 0 && (
         <DiscardPileCardDisplay
-          onTap={onBuyCard}
+          onBuy={onBuyCard}
           card={pile[pile.length - 1]}
           pileSize={pile.length}
         />

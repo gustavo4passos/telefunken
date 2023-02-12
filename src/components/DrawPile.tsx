@@ -16,13 +16,16 @@ const DrawPile = ({ pile }: DrawPileProps) => {
   const startAnimationStatus = useAppSelector(
     state => state.gameData.playerDrawAnimation
   )
+
+  const dealStartAnimationStatus = useAppSelector(
+    state => state.gameData.dealStartAnimation
+  )
+
   const playerCards = useAppSelector(state => state.gameData.playerCards)
   const dispatch = useAppDispatch()
 
   useEffect(() => {
-    if (startAnimationStatus == AnimationStatus.HideDestinationRequested) {
-      dispatch(setDealStartAnimation(AnimationStatus.HideDestinationReady))
-    } else if (startAnimationStatus == AnimationStatus.HideDestinationReady) {
+    if (startAnimationStatus == AnimationStatus.HideDestination) {
       dispatch(setDealStartAnimation(AnimationStatus.HideOrigin))
     }
   }, [startAnimationStatus, dispatch])
