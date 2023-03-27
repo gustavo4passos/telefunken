@@ -1,7 +1,10 @@
 import {
   CardSuit,
+  cardToSvg,
+  cardToSvgIllustration,
   getCardSuit,
   getCardValue,
+  isIllustrationCard,
   rankToString,
   suitToString,
 } from '../game/deck'
@@ -11,16 +14,21 @@ import { useRef, useState } from 'react'
 import { BoundingRect, getBoundingRect } from '../game/helpers'
 import Image from 'next/image'
 
+export enum CardStatus {
+  Normal,
+  ReplacedButUnmelded,
+  DrawnThisTurn,
+}
+
 interface CardProps {
   card: Card
-  className?: string
   setSelected: (selected: boolean) => void
   selected: boolean
   onDrag?: (selected: boolean, rect: BoundingRect) => void
   onDragEnd?: (selected: boolean, card: Card, rect: BoundingRect) => void
   displayValue?: boolean
-  drawnThisTurn?: boolean
   isPlayerTurn: boolean
+  cardStatus: CardStatus
 }
 
 const PlayerCardDisplay = ({
@@ -30,15 +38,16 @@ const PlayerCardDisplay = ({
   selected,
   onDragEnd,
   onDrag,
-  drawnThisTurn,
   isPlayerTurn,
+  cardStatus,
 }: CardProps) => {
   const suit = getCardSuit(card)
   const rankString = rankToString(card)
   const suitString = suitToString(card)
+  const illustrationCard = isIllustrationCard(card)
   const [isDragging, setIsDragging] = useState(false)
   const [cancelHighlight, setCancelHighlight] = useState(false)
-  const highlight = drawnThisTurn && !cancelHighlight
+  const highlight = cardStatus == CardStatus.DrawnThisTurn && !cancelHighlight
 
   const ref = useRef<HTMLDivElement>(null)
 
@@ -74,38 +83,63 @@ const PlayerCardDisplay = ({
         if (isDragging || !isPlayerTurn) return
         setSelected(!selected)
       }}
-      className={`relative flex flex-col border-solid border border-black shadow-md rounded-md sm:rounded-md bg-white \
+      className={`relative flex flex-col border-solid border border-black shadow-md rounded-md sm:rounded-md bg-cardBack \
         px-1 sm:p-1 md:px-1 md:py-0 w-[50px] h-[75px] sm:w-12 sm:h-18 md:w-[60px] md:h-[90px] lg:w-16 lg:h-20 xl:w-[100px] \
-        xl:h-[150px] cursor-pointer ${
-          highlight ? 'border-blue-300 border-2' : ''
-        }`}
+        xl:h-[150px] cursor-pointer select-none ${
+          highlight && 'border-accent border-2'
+        } ${
+        cardStatus == CardStatus.ReplacedButUnmelded &&
+        'border-red-500 border-4'
+      }`}
     >
       {suit != CardSuit.Joker ? (
         <>
           <div
-            className={`flex-1 m-0 p-0 font-bold tracking-tight text-xl md:text-md lg:text-lg xl:text-3xl ${
+            className={`flex-1 m-0 p-0 font-bold tracking-tight text-xl md:text-md lg:text-lg xl:text-3xl items-start ${
               suit == CardSuit.Clubs || suit == CardSuit.Spade
                 ? 'text-black'
                 : 'text-red-500'
             }`}
           >
-            <div className="select-none">{rankString}</div>
-            <div className="-mt-3 select-none">{suitString}</div>
+            <div className="select-none font-serif ml-[2px]">{rankString}</div>
+            <div className="select-none relative w-[25px] h-[25px]">
+              <Image
+                alt="card-suit-image"
+                fill
+                src={cardToSvg(card)}
+                draggable={false}
+              />
+            </div>
           </div>
-          {displayValue && (
-            <AnimatePresence>
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-1 text-info font-medium select-none font-serif"
-              >
-                <div>{getCardValue(card)}</div>
-              </motion.div>
-            </AnimatePresence>
-          )}
         </>
       ) : (
-        <Image fill alt="Joker card" src="./joker.svg" draggable={false} />
+        <Image fill alt="Joker card" src="/joker.svg" draggable={false} />
+      )}
+      <div
+        className={
+          illustrationCard
+            ? 'flex absolute top-0 left-0 right-0 bottom-0 overflow-clip'
+            : 'flex-1 relative mb-[20px]'
+        }
+      >
+        <Image
+          alt="card-suit-image"
+          fill
+          src={cardToSvgIllustration(card)}
+          draggable={false}
+          className="rounded-md"
+        />
+      </div>
+      {displayValue && (
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-0 text-info font-medium select-none font-serif"
+          >
+            <div>{getCardValue(card)}</div>
+          </motion.div>
+        </AnimatePresence>
       )}
     </motion.div>
   )

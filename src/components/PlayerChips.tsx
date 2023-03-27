@@ -14,7 +14,7 @@ const PlayerChips = ({ count, vertical }: PlayerChipsProps) => {
       {[...Array(count)].map((e, i) => (
         <motion.div
           key={i.toString()}
-          className={`bg-red-400 w-[10px] h-[10px] rounded-full shadow-md border border-black/20 ${
+          className={`bg-red-400 w-[10px] h-[10px] rounded-full shadow-md border border-info/20 ${
             vertical ? 'mt-2 first:mt-0' : 'ml-2 first:ml-0 '
           }`}
         />

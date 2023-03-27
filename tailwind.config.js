@@ -21,10 +21,18 @@ module.exports = {
         // // info: '#000000', steph
         // info: '#000000',
         // accent: '#3B185F',
-        primary: '#EAE0DA',
-        secondary: '#A0C3D2',
-        info: '#555555',
+        // primary: '#EAE0DA', //'card game colors'
+        // secondary: '#A0C3D2',
+        // primary: '#553E4E', eggplant
+        // secondary: '#483644',
+        primary: '#1e293b',
+        secondary: '#815B5B',
+        primaryDark: 'slate-800',
+        // info: '#555555',
+        info: '#F5DBCB',
         accent: '#3B185F',
+        cardBack: '#F5DBCB',
+        eggplant: '#533E4E',
       },
     },
   },

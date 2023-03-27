@@ -3,6 +3,10 @@ import { Card, DealConstraint, Meld } from './gameState'
 
 // -1 for no size constraint
 export const NO_SIZE_CONTRAINT = -1
+
+export const MIN_MELD_SIZE = 3
+export const MAX_MELD_SIZE = 6
+
 export interface CombinationConstraint {
   sizeConstraint: number
   pure: boolean
@@ -115,7 +119,8 @@ export const isValidCombination = (
   if (sizeConstraint != NO_SIZE_CONTRAINT && cards.length != sizeConstraint)
     return []
   // Without constraint, sets need can be between 3 and 6 cards long
-  else if (cards.length < 3 || cards.length > 5) return []
+  else if (cards.length < MIN_MELD_SIZE || cards.length > MAX_MELD_SIZE)
+    return []
 
   // Separate the jokers from the combination
   const jokers = cards.filter(c => isJoker(c))

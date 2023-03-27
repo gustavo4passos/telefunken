@@ -49,7 +49,7 @@ export interface MeldExtension {
 export interface PlayerMove {
   melds: Array<Meld>
   discards: Card | null
-  meldExtensions: Record<MeldID, Array<Card>>
+  meldModifications: Array<MeldModification>
 }
 
 export interface DealConstraint {

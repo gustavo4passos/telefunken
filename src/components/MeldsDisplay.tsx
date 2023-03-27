@@ -1,8 +1,9 @@
-import { Meld, MeldID } from '../game/gameState'
+import { Meld, MeldID, PlayerID } from '../game/gameState'
 import { useAppDispatch } from '../store/hooks'
 import MeldDisplay from './MeldDisplay'
 
 export interface WantsToExtendMeldProps {
+  playerId: PlayerID
   meldId: MeldID
   isValid: boolean
 }
@@ -11,8 +12,9 @@ interface MeldsDisplayProps {
   melds: Array<Meld>
   vertical?: boolean
   wantsToExtend?: WantsToExtendMeldProps
-  addMeldRef?: (meldId: MeldID, ref: HTMLDivElement) => void
-  removeMeldRef?: (meldId: MeldID) => void
+  addMeldRef?: (meldId: MeldID, playerId: PlayerID, ref: HTMLDivElement) => void
+  removeMeldRef?: (playerId: PlayerID, meldId: MeldID) => void
+  meldPlayerId: PlayerID
 }
 
 const MeldsDisplay = ({
@@ -21,6 +23,7 @@ const MeldsDisplay = ({
   wantsToExtend,
   addMeldRef,
   removeMeldRef,
+  meldPlayerId,
 }: MeldsDisplayProps) => {
   return (
     <div
@@ -41,12 +44,14 @@ const MeldsDisplay = ({
             wantsToExtend={
               wantsToExtend != undefined &&
               wantsToExtend.isValid &&
-              wantsToExtend.meldId == i
+              wantsToExtend.meldId == i &&
+              wantsToExtend.playerId == meldPlayerId
             }
             cards={m}
             meldId={i}
             addMeldRef={addMeldRef}
             removeMeldRef={removeMeldRef}
+            meldPlayerId={meldPlayerId}
           />
         </div>
       ))}

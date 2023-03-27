@@ -77,8 +77,8 @@ const RemotePlayerCardsDisplay = ({
               fill
               src={
                 !horizontal
-                  ? 'card-back-horizontal.svg'
-                  : 'card-back-vertical.svg'
+                  ? '/card-back-horizontal.svg'
+                  : '/card-back-vertical.svg'
               }
               alt="Card back"
               draggable={false}
@@ -105,8 +105,8 @@ const RemotePlayerCardsDisplay = ({
             fill
             src={
               !horizontal
-                ? 'card-back-horizontal.svg'
-                : 'card-back-vertical.svg'
+                ? '/card-back-horizontal.svg'
+                : '/card-back-vertical.svg'
             }
             alt="Card back"
             draggable={false}

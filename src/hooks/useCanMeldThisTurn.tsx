@@ -15,6 +15,8 @@ const useCanMeldThisTurn = (): CanMeldStatus => {
     if (state != GameState.InProgress) setCanMeldStatus(CanMeldStatus.Invalid)
     else if (dealConstraintCompliance[deal])
       setCanMeldStatus(CanMeldStatus.Success)
+    else if (playMelds.length == 0)
+      setCanMeldStatus(CanMeldStatus.Success) // It's always valid not to meld
     else
       setCanMeldStatus(
         doMeldsSatisfyDealConstraint(playMelds, dealConstraints[deal])

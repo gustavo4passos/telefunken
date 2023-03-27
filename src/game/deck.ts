@@ -122,6 +122,56 @@ export const rankToString = (c: Card): string => {
   }
 }
 
+export const cardToSvg = (c: Card): string => {
+  if (isJoker(c)) return ''
+
+  switch (getCardSuit(c)) {
+    case CardSuit.Clubs:
+      return '/clubs-filled.svg'
+    case CardSuit.Hearts:
+      return '/hearts-filled.svg'
+    case CardSuit.Diamond:
+      return '/diamonds.svg'
+    case CardSuit.Spade:
+      return '/spades.svg'
+    default:
+      return 'Jk'
+  }
+}
+
+export const cardToSvgIllustration = (c: Card): string => {
+  if (isJoker(c)) return ''
+
+  switch (getCardRank(c)) {
+    case CardRank.Queen:
+      return '/queen.svg'
+  }
+
+  switch (getCardSuit(c)) {
+    case CardSuit.Clubs:
+      return '/clubs-filled.svg'
+    case CardSuit.Hearts:
+      return '/hearts-filled.svg'
+    case CardSuit.Diamond:
+      return '/diamonds.svg'
+    case CardSuit.Spade:
+      return '/spades.svg'
+    default:
+      return 'Jk'
+  }
+}
+
+export const isIllustrationCard = (c: Card) => {
+  if (isJoker(c)) return false
+
+  switch (getCardRank(c)) {
+    case CardRank.Queen:
+      return true
+  }
+
+  return false
+}
+
 export const cardToString = (c: Card): string => {
   if (isJoker(c)) return 'Joker'
 

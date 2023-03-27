@@ -25,18 +25,18 @@ const DiscardPile = ({
       {pile.length == 0 && (
         <div
           className={`flex shadow-inner blur-sm rounded-md lg:rounded-md bg-secondary  \
-          md:w-[70px] md:h-[105px] w-[50px] h-[75px] lg:w-[100px] lg:h-[150px]`}
+            w-[50px] h-[75px] md:w-[70px] md:h-[105px] lg:w-[100px] lg:h-[150px]`}
         />
       )}
       {pile.length > 3 && (
         <div
-          className={`flex border-solid border-black border shadow-lg rounded-md lg:rounded-md bg-slate-400 \
+          className={`flex border-solid border-black border shadow-lg rounded-md lg:rounded-md bg-info/30 \
           md:w-[70px] md:h-[105px] w-[50px] h-[75px] lg:w-[100px] lg:h-[150px]`}
         />
       )}
       {pile.length > 2 && (
         <div
-          className={`flex border-solid border-black border shadow-md rounded-md lg:rounded-md bg-slate-300 \
+          className={`flex border-solid border-black border shadow-md rounded-md lg:rounded-md bg-info/20 \
           ${
             pile.length > 3 && '-ml-[48px] md:-ml-[67px] lg:-ml-[96px]'
           } md:w-[70px] md:h-[105px] w-[50px] h-[75px] lg:w-[100px] lg:h-[150px]`}

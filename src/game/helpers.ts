@@ -1,4 +1,4 @@
-import { MeldID } from './gameState'
+import { MeldID, PlayerID } from './gameState'
 
 export interface HTMLDivElementForRect {
   getBoundingClientRect: () => DOMRect
@@ -49,6 +49,19 @@ export const getBoundingRect = (
       width: 0,
       height: 0,
     }
+}
+
+export const getPlayerMeldCollision = (
+  rect: BoundingRect,
+  playerMeldsRefs: Record<PlayerID, Record<MeldID, HTMLDivElementForRect>>
+): [PlayerID, MeldID] | [undefined, undefined] => {
+  for (const pids in playerMeldsRefs) {
+    const pid = Number(pids)
+
+    const meldCollision = getMeldCollision(rect, playerMeldsRefs[pid])
+    if (meldCollision != null) return [pid, meldCollision]
+  }
+  return [undefined, undefined]
 }
 
 export const getMeldCollision = (

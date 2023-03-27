@@ -5,9 +5,20 @@ import { selectTheme, Theme } from '../store/slices/appSettingsSlice'
 import LanguageSelector from '../components/LanguageSelector'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import Link from 'next/link'
+import { FormEvent, useRef } from 'react'
+import { useRouter } from 'next/router'
 
 export default function Home() {
   const currentTheme = useAppSelector(selectTheme)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+
+  const joinGame = (e: FormEvent) => {
+    e.preventDefault()
+    if (inputRef.current == null) return
+    const gameId = Number(inputRef.current.value)
+    if (!isNaN(gameId)) router.push(`/game/${gameId}`)
+  }
 
   return (
     <>
@@ -15,7 +26,10 @@ export default function Home() {
         <title>telefunken</title>
       </Head>
       <main className={`${currentTheme == Theme.Dark && 'dark'}`}>
-        <div className="bg-white flex flex-col min-h-screen items-center justify-center py-12 px-4 dark:bg-slate-800">
+        <div
+          className="bg-gradient-to-b from-primary to-secondary flex flex-col min-h-screen items-center justify-center \
+          py-12 px-4 dark:bg-gradient-to-b dark:from-slate-800 dark:to-slate-900"
+        >
           <div className="absolute top-10">
             <ThemeToggleButton />
           </div>
@@ -29,21 +43,27 @@ export default function Home() {
                 alt="Telefunken Logo"
                 draggable={false}
               />
-              <h2 className="dark:text-white mt-3 text-center text-6xl font-bold tracking-tight text-gray-900">
+              <h2 className="dark:text-white mt-3 text-center text-6xl font-bold tracking-tight text-info">
                 Telefunken
               </h2>
-              <p className="dark:text-slate-400 mt-2 text-xl text-center text-gray-600">
+              <p className="dark:text-slate-400 mt-2 text-xl text-center text-accent">
                 To play, create a new game or join an existing one
               </p>
             </div>
             <div className="shadow-lg px-12 py-4 space-y-2">
-              <form className="space-y-6" action="#" method="POST">
+              <form
+                className="space-y-6"
+                action="#"
+                method="POST"
+                onSubmit={joinGame}
+              >
                 <div className="-space-y-px rounded-md shadow-sm">
                   <div className="space-y-2">
-                    <div className="text-center text-lg text-gray-900 dark:text-slate-400">
+                    <div className="text-center text-lg text-info dark:text-slate-400">
                       Join a Game
                     </div>
                     <input
+                      ref={inputRef}
                       id="game-id"
                       name="game-id"
                       type="text"
@@ -58,8 +78,8 @@ export default function Home() {
               </div>
               <p className="text-center text-xl text-gray-600 dark:text-slate-400">
                 <Link
-                  href="/game"
-                  className="font-medium text-indigo-400 hover:text-indigo-300"
+                  href="/create"
+                  className="font-medium text-accent hover:text-indigo-200 dark:text-indigo-400"
                 >
                   Create a New Game
                 </Link>
